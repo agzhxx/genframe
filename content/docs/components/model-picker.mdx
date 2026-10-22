@@ -1,0 +1,145 @@
+---
+title: ModelPicker
+description: A searchable list of models with their badges and prices, and what a run with the current settings would cost, like "5 s × $0.042 ≈ $0.21".
+---
+
+import { modelPickerKeyboard, modelPickerListKeyboard } from '@/content/keyboard/model-picker';
+
+<Demo name="model-picker" />
+
+The models come in as data, prices included; nothing is built in. Every option shows its badges
+(image or video, resolutions, clip lengths, speed) and an estimate for the run's settings, so people
+compare models by what they'd pay. Type to filter by name, badge or keyword.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/model-picker
+```
+
+Or by URL:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/model-picker.json
+```
+
+The URL form needs the namespace mapped too ([Add the registry](../index.mdx#add-the-registry)):
+the picker brings three Genframe items with it, [estimateCost](../utilities/estimate-cost.mdx),
+[useReducedMotion](../utilities/use-reduced-motion.mdx) and the
+[motion tokens](../utilities/motion-tokens.mdx), and shadcn finds them through `@genframe`.
+
+It lands in `components/ui/model-picker/`: the component and its search (`model-filter.ts`). It's
+built on shadcn's `button`, `popover` and `command`, which `shadcn add` installs when your app
+doesn't have them yet. They aren't in the size above, since your app may have them already, but
+`command` brings the cmdk package: 4.7 KB gzip in a Radix app, which shares Radix's packages with
+it, and 17.9 KB in a Base UI app, where it brings Radix's dialog along.
+
+## Usage
+
+```tsx
+import { useState } from "react"
+import { ModelPicker, type ModelOption } from "@/components/ui/model-picker/model-picker"
+
+const models: ModelOption[] = [
+  {
+    id: "flash",
+    name: "Flash Image",
+    kind: "image",
+    resolutions: ["1024 px"],
+    speed: "Fast",
+    price: { amount: 0.004, unit: "image" },
+  },
+  {
+    id: "motion",
+    name: "Motion Pro",
+    kind: "video",
+    resolutions: ["720p", "1080p"],
+    durations: [5, 10],
+    price: { amount: 0.042, unit: "second" },
+  },
+]
+
+export function ModelSetting() {
+  const [modelId, setModelId] = useState("motion")
+
+  return (
+    <ModelPicker
+      models={models}
+      value={modelId}
+      onValueChange={setModelId}
+      settings={{ duration: 5 }}
+      groupBy={(model) => (model.kind === "image" ? "Image" : "Video")}
+    />
+  )
+}
+```
+
+Each option's estimate is [`estimateCost(model, settings)`](../utilities/estimate-cost.mdx): Motion
+Pro's reads "5 s × $0.042 ≈ $0.21". When the settings have no duration, a video model's estimate
+takes its first clip length; a model without clip lengths shows its price per second instead. Pass
+`count` for runs that make several images or videos, and `references` for models that charge for
+reference images (`perReference` in their price).
+
+Without `value` or `defaultValue`, the first model is chosen. `locale` writes the prices with
+another locale's numbers: `"de-DE"` gives "≈ 0,21 $". To show the chosen model's cost somewhere
+else, like a prompt box's cost hint, call `estimateCost` with the same settings.
+
+## Props
+
+<AutoTypeTable path="registry/ui/model-picker/model-picker.tsx" name="ModelPickerProps" />
+
+Each model is a `ModelOption`. Its `price` is a
+[`ModelPrice`](../utilities/estimate-cost.mdx#estimatecostmodel-settings): an amount per second of
+video, per image or per video, and optionally what each reference image adds.
+
+<AutoTypeTable path="registry/ui/model-picker/model-picker.tsx" name="ModelOption" />
+
+## Keyboard
+
+On the button:
+
+<KeyboardTable keyboard={modelPickerKeyboard} />
+
+In the open list, typing filters the models. Focus stays in the search box while the active model
+moves:
+
+<KeyboardTable keyboard={modelPickerListKeyboard} />
+
+Tab leaves the list, which closes it. These are cmdk's keys; its Ctrl+N, J, P and K shortcuts are
+turned off.
+
+## Accessibility
+
+- The button's name is "Model" and the chosen model, "Model: Kling 2.5", or your label and the
+  model with `aria-labelledby`. It says it opens a dialog (`aria-haspopup="dialog"`) and whether
+  it's open (`aria-expanded`).
+- The popover is a dialog named "Models" around the WAI-ARIA
+  [combobox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/): the search box is a
+  `combobox` named "Search models", with `aria-autocomplete="list"`, `aria-expanded`, and
+  `aria-controls` pointing at the `listbox`, named "Models". Focus stays in the search box, and its
+  `aria-activedescendant` points at the active option, the one with `aria-selected="true"`.
+- An option's name is everything it shows, in order: "Kling 2.5 Video 720p 5 s ≈ $0.11 5 s ×
+  $0.021", with "(current)" at the end for the chosen model. So the name holds the option's visible
+  text, as WCAG's label-in-name rule asks, and starts with the model, for voice control. Groups are
+  named by their headings.
+- When nothing matches, a polite status says so: "No models match sora". The empty `listbox` is
+  hidden meanwhile and the message shows beside it, since a listbox must hold options.
+- Two gaps in cmdk 1.1.1, closed by the picker: it leaves the search box without
+  `aria-activedescendant` when the list opens on the current model and after the active model is
+  filtered out, and it keeps `aria-expanded="true"` when no option is left. The picker keeps both in
+  step with the list, and the tests check every attribute above.
+- Esc, a choice or Tab closes the list, and focus goes back to the button.
+
+## Motion
+
+- The popover keeps shadcn's fade and zoom out of the button, timed by the motion tokens
+  (`--genframe-duration-fast` and `--genframe-ease-out`) instead of shadcn's 100 ms. It renders at
+  the end of the page, outside any container that retimes the tokens, so the picker takes the
+  button's values along: the playground's slow motion reaches it, and so would an app's.
+- With reduced motion, it opens and closes at once.
+
+## Changelog
+
+- **0.1.0**: With nothing matching, the empty list is hidden and its message shows beside it: a
+  `listbox` without options is invalid ARIA (axe's `aria-required-children`, critical).
+- **0.0.4**: First release.

@@ -1,0 +1,134 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+/* Fumadocs draws its own UI (sidebar, search, page) from the shadcn variables below. */
+@import 'fumadocs-ui/css/shadcn.css';
+@import 'fumadocs-ui/css/preset.css';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * The Feed's design tokens (generation-feed, app/tokens.css) mapped onto shadcn's variables.
+ * The Kit's components only use shadcn's names (bg-background, text-muted-foreground, ...),
+ * so in someone else's app they take that app's theme; here they take the Feed's.
+ * Dark only, like the Feed. The Feed's contrast numbers hold: fg-muted on surface 7.8,
+ * accent on bg 7.6, on-accent on accent 7.5, line-strong (input borders) 3.1 on surface.
+ */
+:root {
+  color-scheme: dark;
+
+  --background: #0b0b0c;           /* bg */
+  --foreground: #f2f2f3;           /* fg */
+  --card: #141416;                 /* surface */
+  --card-foreground: #f2f2f3;
+  --popover: #1d1d20;              /* surface-raised: menus float above cards */
+  --popover-foreground: #f2f2f3;
+  --primary: #ff7a45;              /* accent, "Ember" */
+  --primary-foreground: #1a0a03;   /* on-accent */
+  --secondary: #1d1d20;            /* surface-raised */
+  --secondary-foreground: #f2f2f3;
+  --muted: #141416;                /* surface */
+  --muted-foreground: #a8a8b0;     /* fg-muted */
+  --accent: #1d1d20;               /* shadcn's accent is the hover fill, not the brand color */
+  --accent-foreground: #f2f2f3;
+  --destructive: #ff6b81;          /* danger */
+  --border: #2a2a2f;               /* line */
+  --input: #62626b;                /* line-strong */
+  --ring: #ff7a45;                 /* focus */
+  --chart-1: #ff7a45;
+  --chart-2: #ff9466;
+  --chart-3: #a8a8b0;
+  --chart-4: #62626b;
+  --chart-5: #2a2a2f;
+  --radius: 0.5rem;                /* radius-control, 8px */
+  --sidebar: #0b0b0c;
+  --sidebar-foreground: #f2f2f3;
+  --sidebar-primary: #ff7a45;
+  --sidebar-primary-foreground: #1a0a03;
+  --sidebar-accent: #1d1d20;
+  --sidebar-accent-foreground: #f2f2f3;
+  --sidebar-border: #2a2a2f;
+  --sidebar-ring: #ff7a45;
+
+  /* The motion-tokens item, as `shadcn add` writes it into an app (the Feed's values).
+     tests/motion-tokens.test.ts keeps these equal to registry.json. */
+  --genframe-duration-fast: 120ms;
+  --genframe-duration-base: 220ms;
+  --genframe-duration-reveal: 600ms;
+  --genframe-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --genframe-ease-spring: linear(0, 0.007 1.3%, 0.026 2.5%, 0.056 3.8%, 0.101 5.3%, 0.204 8%, 0.458 14%, 0.568 16.8%, 0.668 19.5%, 0.753 22.3%, 0.825 25%, 0.888 28%, 0.937 31%, 0.972 34%, 0.997 37%, 1.013 40%, 1.028 47.3%, 1.003 76.5%, 1);
+}
+
+/* The playground's "Slow motion (0.25×)" toggle (components/docs/playground.tsx): the duration
+   tokens at four times their length, inside the preview only. Components read the variables, so
+   they all slow down. tests/motion-tokens.test.ts checks these against registry.json. */
+[data-slow-motion] {
+  --genframe-duration-fast: 480ms;
+  --genframe-duration-base: 880ms;
+  --genframe-duration-reveal: 2400ms;
+}
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  /* The Feed's radii by role: badge 4, card 6, control 8, panel 12. */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: var(--radius);
+  --radius-xl: 12px;
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}

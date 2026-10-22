@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    # The screenshot baselines (e2e/__screenshots__) come from this image, through
+    # screenshots.yml: both name it, rather than ubuntu-latest, which GitHub is moving to
+    # Ubuntu 26 from 19 October 2026.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+
+      # `pnpm build`, one step at a time (spec section 5): the registry's JSON (registry.json →
+      # public/r), the size check against each item's budget (→ generated/sizes.json, which the
+      # item pages show), then the static site (→ out/, which includes public/r).
+      - run: pnpm exec shadcn registry validate
+      - run: pnpm registry:build
+      - name: Size check
+        run: pnpm sizes
+      - run: pnpm exec next build
+
+      # Google Chrome is already on GitHub's Ubuntu runners (playwright.config.ts).
+      - run: pnpm test:e2e
+
+      # Lighthouse CI on the built site, served gzipped as GitHub Pages serves it (spec section 5):
+      # the home page, the Studio, Getting started and the heaviest component page, with
+      # Lighthouse's mobile preset, the median of three runs. The assertions are in
+      # lighthouserc.json; LCP only warns (docs/PERF.md, M8, says why).
+      - run: pnpm lighthouse
+
+      # Every item into a fresh shadcn app, Base UI and Radix, then tsc and vite build there.
+      - run: pnpm test:install
+
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/reports/
+          retention-days: 14
+
+      - if: github.event_name == 'push'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: out/
+
+  # GitHub Pages hosts the site and the registry. Only main deploys, and
+  # only after every check passes; Pages has no previews for pull requests.
+  deploy:
+    needs: ci
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v5

@@ -1,0 +1,232 @@
+{
+  "$description": "Genframe’s design tokens, made from the code by scripts/design-tokens.ts; tests/design-tokens.test.ts keeps them equal. The code stays the source of truth.",
+  "color": {
+    "$description": "shadcn’s color variables, which the Kit’s components use, with the Feed’s values (app/global.css); a description names the Feed token",
+    "background": {
+      "$type": "color",
+      "$value": "#0b0b0c",
+      "$description": "bg"
+    },
+    "foreground": {
+      "$type": "color",
+      "$value": "#f2f2f3",
+      "$description": "fg"
+    },
+    "card": {
+      "$type": "color",
+      "$value": "#141416",
+      "$description": "surface"
+    },
+    "card-foreground": {
+      "$type": "color",
+      "$value": "#f2f2f3"
+    },
+    "popover": {
+      "$type": "color",
+      "$value": "#1d1d20",
+      "$description": "surface-raised: menus float above cards"
+    },
+    "popover-foreground": {
+      "$type": "color",
+      "$value": "#f2f2f3"
+    },
+    "primary": {
+      "$type": "color",
+      "$value": "#ff7a45",
+      "$description": "accent, \"Ember\""
+    },
+    "primary-foreground": {
+      "$type": "color",
+      "$value": "#1a0a03",
+      "$description": "on-accent"
+    },
+    "secondary": {
+      "$type": "color",
+      "$value": "#1d1d20",
+      "$description": "surface-raised"
+    },
+    "secondary-foreground": {
+      "$type": "color",
+      "$value": "#f2f2f3"
+    },
+    "muted": {
+      "$type": "color",
+      "$value": "#141416",
+      "$description": "surface"
+    },
+    "muted-foreground": {
+      "$type": "color",
+      "$value": "#a8a8b0",
+      "$description": "fg-muted"
+    },
+    "accent": {
+      "$type": "color",
+      "$value": "#1d1d20",
+      "$description": "shadcn's accent is the hover fill, not the brand color"
+    },
+    "accent-foreground": {
+      "$type": "color",
+      "$value": "#f2f2f3"
+    },
+    "destructive": {
+      "$type": "color",
+      "$value": "#ff6b81",
+      "$description": "danger"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "#2a2a2f",
+      "$description": "line"
+    },
+    "input": {
+      "$type": "color",
+      "$value": "#62626b",
+      "$description": "line-strong"
+    },
+    "ring": {
+      "$type": "color",
+      "$value": "#ff7a45",
+      "$description": "focus"
+    }
+  },
+  "radius": {
+    "$description": "Corner radii by role (app/global.css)",
+    "sm": {
+      "$type": "dimension",
+      "$value": "4px",
+      "$description": "Badges and small marks"
+    },
+    "md": {
+      "$type": "dimension",
+      "$value": "6px",
+      "$description": "Cards and media"
+    },
+    "lg": {
+      "$type": "dimension",
+      "$value": "8px",
+      "$description": "Controls: buttons, inputs, selects"
+    },
+    "xl": {
+      "$type": "dimension",
+      "$value": "12px",
+      "$description": "Panels: the playground, the prompt box, a card in the queue"
+    },
+    "full": {
+      "$type": "dimension",
+      "$value": "9999px",
+      "$description": "Pills and round handles"
+    }
+  },
+  "font-family": {
+    "sans": {
+      "$type": "fontFamily",
+      "$value": "Instrument Sans"
+    }
+  },
+  "font-size": {
+    "$description": "Tailwind’s sizes, as the components use them (text-xs to text-xl)",
+    "xs": {
+      "$type": "dimension",
+      "$value": "12px"
+    },
+    "sm": {
+      "$type": "dimension",
+      "$value": "14px"
+    },
+    "base": {
+      "$type": "dimension",
+      "$value": "16px"
+    },
+    "lg": {
+      "$type": "dimension",
+      "$value": "18px"
+    },
+    "xl": {
+      "$type": "dimension",
+      "$value": "20px"
+    }
+  },
+  "line-height": {
+    "$description": "The line height that goes with each size",
+    "xs": {
+      "$type": "dimension",
+      "$value": "16px"
+    },
+    "sm": {
+      "$type": "dimension",
+      "$value": "20px"
+    },
+    "base": {
+      "$type": "dimension",
+      "$value": "24px"
+    },
+    "lg": {
+      "$type": "dimension",
+      "$value": "28px"
+    },
+    "xl": {
+      "$type": "dimension",
+      "$value": "28px"
+    }
+  },
+  "font-weight": {
+    "normal": {
+      "$type": "fontWeight",
+      "$value": 400
+    },
+    "medium": {
+      "$type": "fontWeight",
+      "$value": 500
+    },
+    "semibold": {
+      "$type": "fontWeight",
+      "$value": 600
+    }
+  },
+  "motion": {
+    "$description": "The motion-tokens item (registry.json): CSS variables named --genframe-…",
+    "duration-fast": {
+      "$type": "duration",
+      "$value": "120ms",
+      "$description": "Feedback: hover, press, small changes"
+    },
+    "duration-base": {
+      "$type": "duration",
+      "$value": "220ms",
+      "$description": "Things that move, open or appear"
+    },
+    "duration-reveal": {
+      "$type": "duration",
+      "$value": "600ms",
+      "$description": "A result coming into view (DenoiseReveal)"
+    },
+    "ease-out": {
+      "$type": "cubicBezier",
+      "$value": [
+        0.2,
+        0.8,
+        0.2,
+        1
+      ],
+      "$description": "Every transition but the spring"
+    },
+    "spring": {
+      "$description": "--genframe-ease-spring over duration-base: a damped spring (damping ratio 0.75, 2.8% overshoot) for movement to a place the user asked for, like a slider's handle to a click. In Figma: Custom spring with this mass, stiffness and damping.",
+      "mass": {
+        "$type": "number",
+        "$value": 1
+      },
+      "stiffness": {
+        "$type": "number",
+        "$value": 1968.7
+      },
+      "damping": {
+        "$type": "number",
+        "$value": 66.6
+      },
+      "$extensions": {
+        "dev.genframe.css": "linear(0, 0.007 1.3%, 0.026 2.5%, 0.056 3.8%, 0.101 5.3%, 0.204 8%, 0.458 14%, 0.568 16.8%, 0.668 19.5%, 0.753 22.3%, 0.825 25%, 0.888 28%, 0.937 31%, 0.972 34%, 0.997 37%, 1.013 40%, 1.028 47.3%, 1.003 76.5%, 1)"
+      }
+    }
+  }
+}

@@ -1,0 +1,179 @@
+---
+title: MediaGrid
+description: A virtualized masonry grid of images and videos. CSS places its first screen before any JavaScript runs, and clips preview from a shared pool of video elements.
+---
+
+import { mediaGridKeyboard } from '@/content/keyboard/media-grid';
+
+<Demo name="media-grid" />
+
+A long feed of images and clips in lanes, like a masonry wall. It began as
+[Generation Feed](https://generation-feed.vercel.app)'s grid, which shows over a thousand items with
+it, and the Feed now installs it from here. Scroll the box: only the cards near what you see are in
+the page. Rest the pointer on a clip and it plays; the count beside the grid says how many of the
+pool's videos hold a clip, and it never goes above the pool's size.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/media-grid
+```
+
+Or by URL:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/media-grid.json
+```
+
+The URL form needs the namespace mapped too ([Add the registry](../index.mdx#add-the-registry)):
+the grid brings [MediaCard](./media-card.mdx), the [masonry layout](../utilities/masonry-layout.mdx),
+[useVideoPool](../utilities/use-video-pool.mdx) with [createVideoPool](../utilities/video-pool.mdx),
+[useThumbHash](../utilities/use-thumbhash.mdx) with the `thumbhash` package,
+[useReducedMotion](../utilities/use-reduced-motion.mdx) and the
+[motion tokens](../utilities/motion-tokens.mdx), and shadcn finds them through `@genframe`. It lands
+in `components/ui/media-grid/`, and writes nothing into your stylesheet: the CSS for its first
+screen is its own (below).
+
+## Usage
+
+```tsx
+import type { GetMediaUrl, MediaItem } from "@/components/ui/media-card/media-card"
+import { MediaGrid } from "@/components/ui/media-grid/media-grid"
+import { VideoPoolProvider } from "@/hooks/use-video-pool"
+
+// Your URL builder: each poster in each width and format, and a clip's short preview.
+const getMediaUrl: GetMediaUrl = (item, request) => {
+  if (request.type === "preview") {
+    return item.kind === "video" ? `https://media.example.com/${item.id}/preview.mp4` : undefined
+  }
+  return `https://media.example.com/${item.id}/${request.width}.${request.format}`
+}
+
+const href = (item: MediaItem) => `/media/${item.id}`
+
+interface GalleryProps {
+  items: MediaItem[]
+  total: number
+  hasMore: boolean
+  loadMore: () => void
+}
+
+export function Gallery({ items, total, hasMore, loadMore }: GalleryProps) {
+  return (
+    <VideoPoolProvider>
+      <MediaGrid
+        items={items}
+        total={total}
+        getMediaUrl={getMediaUrl}
+        getHref={href}
+        aria-label="Generations"
+        hasMore={hasMore}
+        onEndReached={loadMore}
+      />
+    </VideoPoolProvider>
+  )
+}
+```
+
+An item is `{ id, kind, width, height, thumbhash?, alt }`, [MediaCard](./media-card.mdx)'s
+`MediaItem`, and yours can carry more fields: `getMediaUrl`, `getHref`, `onOpen` and
+`renderOverlay` get your items back, typed. Keep the functions you pass stable, defined outside the
+component or with `useCallback`: a card renders again only when what it gets changes, not on every
+scroll.
+
+### Pages
+
+Pass the items loaded so far. With `hasMore`, the grid calls `onEndReached` once the last card it
+shows is within twenty of the end; add the next page to the end of `items`. Cards already placed
+never move. While the page is on its way, `loadingMore` ends every lane with a placeholder card.
+
+### The first screen, before any JavaScript
+
+A masonry grid needs its width to place cards, and a server doesn't know it. So until the grid has
+measured itself, in the server's HTML and React's first render, CSS places its first
+`initialCards` (40):
+
+- Placement doesn't depend on the width: each card goes into the lane with the smallest sum of
+  aspect ratios so far ([placeCards](../utilities/masonry-layout.mdx)). Only the number of lanes
+  changes it, and there are just a few.
+- So each card carries its place at every lane step as custom properties, and a style sheet the grid
+  renders beside them picks the set for its width with container queries, then works out the box in
+  `cqw` (a hundredth of the grid's width), with the same arithmetic as the pixel layout.
+- The first screen paints before any JavaScript runs, at any width, and nothing moves when React
+  takes over. Generation Feed checks every card at four widths in three browsers: the two layouts
+  agree to half a pixel.
+
+Only the first `initialPosters` (12) bring their posters; the rest show their ThumbHash's average
+color until the grid has measured, so they don't compete with the first screen. The first
+`eagerPosters` (6) load at once, and the `priorityIndex` card's first of all, with
+`fetchpriority="high"`: preload the same poster in your page's head. Once it has measured, the grid
+places cards in pixels, the same way, and keeps the ones within about a screen above and below what's
+visible.
+
+### Scrolling
+
+The window scrolls the grid unless you pass the element that does, as the playground does:
+
+```tsx
+const scroller = useRef<HTMLDivElement>(null)
+
+<div ref={scroller} className="h-128 overflow-y-auto">
+  <MediaGrid items={items} getMediaUrl={getMediaUrl} scrollRef={scroller} />
+</div>
+```
+
+`reveal(index)`, through `ref`, scrolls a card into the middle of the view if it's out of it,
+renders the cards around it at once and returns its link, to focus: after a detail view closes,
+say. It stops below a sticky header when the scroller says how tall it is with
+`scroll-padding-top`, which also keeps cards reached with Tab out from under it.
+
+### Lanes
+
+`lanes` are steps of `{ minWidth, lanes, gap }` by the grid's own width, narrowest first. The
+default, `LANE_STEPS`, is Generation Feed's: 2 lanes below 640 px, then 3, 4 from 1,024 px and 5
+from 1,440 px, with gaps of 4 to 8 px. Pass `sizes` for the posters when the grid isn't as wide as
+the window; the default, `laneSizes(lanes)`, assumes it is.
+
+### Previews
+
+Under a [VideoPoolProvider](../utilities/use-video-pool.mdx), a clip plays its preview while the
+pointer rests on its card or it has keyboard focus. On touch screens, once scrolling stops, the clip
+nearest the middle of the screen plays, one at a time. `autoplay={false}` shows play buttons
+instead, as reduced motion does: turn it off with Save-Data, for one. `paused` stops every preview
+while something covers the grid, like a detail view. Without a provider, clips show their posters.
+
+## Props
+
+<AutoTypeTable path="registry/ui/media-grid/media-grid.tsx" name="MediaGridProps" />
+
+## Keyboard
+
+<KeyboardTable keyboard={mediaGridKeyboard} />
+
+Cards come in the order they were placed: across the lanes, about a row at a time. Each card's own
+keys are [MediaCard](./media-card.mdx#keyboard)'s.
+
+## Accessibility
+
+- A `list` named by `aria-label` or `aria-labelledby`, with a `listitem` per card that says its
+  place in the whole set, loaded or not: `aria-posinset` and `aria-setsize`, "5 of 340".
+- Each card is a link, or a button without `getHref`, named by its item's `alt`
+  ([MediaCard](./media-card.mdx#accessibility)).
+- Only the cards near the view are in the page. Tab moves to the next card, which the browser
+  scrolls into view, and the grid renders the cards around it as it goes.
+- The placeholder cards while a page loads are hidden from screen readers: say "Loading more" in a
+  live region of your own, as Generation Feed does.
+
+## Motion
+
+- Nothing in the grid moves: cards are placed once, and new pages go below the ones there.
+- A lazy poster fades in over its blurred ThumbHash, over `--genframe-duration-base`; the cards CSS
+  placed first show theirs as they load, since a fading poster would stay hidden until JavaScript
+  ran. A clip's preview fades in over its poster once its first frame is painted, over
+  `--genframe-duration-fast` ([MediaCard](./media-card.mdx#motion)).
+- With reduced motion, nothing plays by itself: hover, focus and the touch screen's pick start
+  nothing, and clips get play buttons. Posters fade in over `--genframe-duration-fast`.
+
+## Changelog
+
+- **0.0.6**: First release.

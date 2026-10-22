@@ -1,0 +1,114 @@
+---
+title: GenerationCard
+description: One generation job, in whichever state it's in, with the buttons for that state. Its media keeps the shape you asked for from the start.
+---
+
+import { generationCardKeyboard } from '@/content/keyboard/generation-card';
+
+<Demo name="generation-card" />
+
+A card in each state: queued, running with its progress, running while its progress is unknown,
+succeeded, failed and canceled. Replay shows the succeeded one finishing again, with its result
+sharpening out of grain. [GenerationQueue](./generation-queue.mdx) lays cards out in a list and
+works out their places in line and times left; use a card on its own where one job is all you
+show.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/generation-card
+```
+
+Or by URL:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/generation-card.json
+```
+
+The URL form needs the namespace mapped too ([Add the registry](../index.mdx#add-the-registry)):
+the card brings [DenoiseReveal](./denoise-reveal.mdx), the
+[queue's reducer](../utilities/generation-queue-reducer.mdx) (for its types),
+[useThumbHash](../utilities/use-thumbhash.mdx) with the `thumbhash` package,
+[useReducedMotion](../utilities/use-reduced-motion.mdx) and the
+[motion tokens](../utilities/motion-tokens.mdx), and shadcn finds them through `@genframe`.
+
+It lands in `components/ui/generation-card/` and uses shadcn's `button`, which `shadcn add`
+installs when your app doesn't have it yet.
+
+## Usage
+
+```tsx
+import { GenerationCard } from "@/components/ui/generation-card/generation-card"
+import { queuePosition, timeLeft, type GenerationJob } from "@/lib/generation-queue-reducer"
+
+export function LatestJob({ jobs, now }: { jobs: readonly GenerationJob[]; now: number }) {
+  const job = jobs[0]
+  if (!job) return null
+  return (
+    <GenerationCard
+      key={job.id}
+      job={job}
+      position={queuePosition(jobs, job.id)}
+      timeLeft={timeLeft(jobs, job.id, { now, concurrency: 2 })}
+      onCancel={(canceled) => {
+        // useGenerationQueue's cancel(canceled.id)
+      }}
+    />
+  )
+}
+```
+
+The card shows what the job says, and what you pass it: its place in line and the time it has
+left, in milliseconds, which the [reducer's selectors](../utilities/generation-queue-reducer.mdx#api)
+work out. Render one card per job, keyed by its id: a card reveals a result that arrives while it's
+on screen, and just shows one that was already there when it mounted, like a result loaded with the
+page.
+
+`jobName(job)`, from the same file, is the job's name as the card says it: "Image 3".
+
+## Props
+
+<AutoTypeTable path="registry/ui/generation-card/generation-card.tsx" name="GenerationCardProps" />
+
+## Keyboard
+
+<KeyboardTable keyboard={generationCardKeyboard} />
+
+The card is focusable from code (`tabIndex={-1}`) but not with Tab: GenerationQueue moves focus to
+it when a card before it is removed.
+
+## Accessibility
+
+- The card is an `article` named after its job, by kind and number ("Image 3", "Video 2"), and
+  described by its state: "2nd in line · done in about 40 s", "Ready", "Failed: The model timed
+  out", "Canceled · refunded". The prompt is its text.
+- A running job has a `progressbar` named after the job, with `aria-valuenow` from 0 to 100 and
+  `aria-valuetext` in words: "45%, about 10 seconds left". While its progress is unknown, it has no
+  value, and its text says "Generating" and the time left, if the driver estimated it. The same
+  words on screen are hidden from screen readers, which hear the progress bar.
+- Its buttons are named after the job: "Cancel image 3", "Open image 3", "Retry image 3", "Remove
+  image 3". Each shows only when its callback is there.
+- The result's alt text is the result's own, or the prompt.
+- When the focused button goes with the state it belonged to, like Cancel once the job is done,
+  focus stays on the card instead of dropping to the page.
+- Times read "about 7 s" below 10 seconds, then in steps of 5 seconds, then in minutes, so the
+  number doesn't flicker.
+
+## Motion
+
+- The media keeps the requested aspect ratio from the first state to the result, with the result's
+  ThumbHash under it while it loads: nothing jumps. A portrait ratio narrows rather than grow past
+  18rem.
+- The progress bar slides to each report over `--genframe-duration-base`; with reduced motion, it
+  jumps there.
+- While progress is unknown, the media and the bar pulse slowly: Tailwind's `animate-pulse`, a
+  2 s loop, as in shadcn's skeleton. It's the one motion the tokens don't time, since it's a loop
+  and not a change of state, so the playground's slow motion leaves it as it is. With reduced
+  motion, they keep still.
+- A result that arrives on screen grows out of grain and blur with
+  [DenoiseReveal](./denoise-reveal.mdx), over `--genframe-duration-reveal` (600 ms); with reduced
+  motion, it fades in over `--genframe-duration-fast`.
+
+## Changelog
+
+- **0.0.5**: First release.

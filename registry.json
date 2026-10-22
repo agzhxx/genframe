@@ -1,0 +1,468 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "genframe",
+  "homepage": "https://agzhxx.github.io/genframe",
+  "items": [
+    {
+      "name": "use-reduced-motion",
+      "type": "registry:hook",
+      "title": "useReducedMotion",
+      "description": "Tells components whether to reduce motion: the user's system setting, or your app's own through ReducedMotionProvider.",
+      "files": [
+        {
+          "path": "registry/hooks/use-reduced-motion.ts",
+          "type": "registry:hook"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 400
+      }
+    },
+    {
+      "name": "motion-tokens",
+      "type": "registry:item",
+      "title": "Motion tokens",
+      "description": "The durations and easing curves that Genframe's animated components share, as CSS variables.",
+      "css": {
+        ":root": {
+          "--genframe-duration-fast": "120ms",
+          "--genframe-duration-base": "220ms",
+          "--genframe-duration-reveal": "600ms",
+          "--genframe-ease-out": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+          "--genframe-ease-spring": "linear(0, 0.007 1.3%, 0.026 2.5%, 0.056 3.8%, 0.101 5.3%, 0.204 8%, 0.458 14%, 0.568 16.8%, 0.668 19.5%, 0.753 22.3%, 0.825 25%, 0.888 28%, 0.937 31%, 0.972 34%, 0.997 37%, 1.013 40%, 1.028 47.3%, 1.003 76.5%, 1)"
+        }
+      },
+      "meta": {
+        "gzipBudget": 300
+      }
+    },
+    {
+      "name": "estimate-cost",
+      "type": "registry:lib",
+      "title": "estimateCost",
+      "description": "What a generation will cost, from a model's price and the run's settings: exact, rounded once, and in words.",
+      "files": [
+        {
+          "path": "registry/lib/estimate-cost.ts",
+          "type": "registry:lib"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 1300
+      }
+    },
+    {
+      "name": "generation-queue-reducer",
+      "type": "registry:lib",
+      "title": "generationQueueReducer",
+      "description": "The generation queue's state as a pure reducer, which ignores events that arrive late, with selectors for a queued job's place in line and the time a job has left.",
+      "files": [
+        {
+          "path": "registry/lib/generation-queue-reducer.ts",
+          "type": "registry:lib"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 1000
+      }
+    },
+    {
+      "name": "use-generation-queue",
+      "type": "registry:hook",
+      "title": "useGenerationQueue",
+      "description": "Runs the generation queue's jobs on your driver, a few at a time: submit, cancel, retry and remove, and everything stops when it unmounts.",
+      "registryDependencies": [
+        "@genframe/generation-queue-reducer"
+      ],
+      "files": [
+        {
+          "path": "registry/hooks/use-generation-queue.ts",
+          "type": "registry:hook"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 1100
+      }
+    },
+    {
+      "name": "simulated-generator",
+      "type": "registry:lib",
+      "title": "createSimulatedGenerator",
+      "description": "A pretend generator for demos and tests: a driver for useGenerationQueue that takes a while, reports its progress and sometimes fails, the same way every time.",
+      "registryDependencies": [
+        "@genframe/use-generation-queue",
+        "@genframe/generation-queue-reducer"
+      ],
+      "files": [
+        {
+          "path": "registry/lib/simulated-generator.ts",
+          "type": "registry:lib"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 800
+      }
+    },
+    {
+      "name": "use-thumbhash",
+      "type": "registry:hook",
+      "title": "useThumbHash",
+      "description": "A ThumbHash as a placeholder: a tiny PNG data URL to show while the image loads.",
+      "dependencies": [
+        "thumbhash@^0.1.1"
+      ],
+      "files": [
+        {
+          "path": "registry/hooks/use-thumbhash.ts",
+          "type": "registry:hook"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 1800
+      }
+    },
+    {
+      "name": "compare-slider",
+      "type": "registry:ui",
+      "title": "CompareSlider",
+      "description": "A before/after slider for two images or two videos: drag the divider, click where it should go or use the keys; two videos stay in step.",
+      "registryDependencies": [
+        "@genframe/use-reduced-motion",
+        "@genframe/motion-tokens"
+      ],
+      "files": [
+        {
+          "path": "registry/ui/compare-slider/compare-slider.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "registry/ui/compare-slider/slider-math.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "registry/ui/compare-slider/video-sync.ts",
+          "type": "registry:ui"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 3200
+      }
+    },
+    {
+      "name": "aspect-ratio-picker",
+      "type": "registry:ui",
+      "title": "AspectRatioPicker",
+      "description": "Pick an aspect ratio from frames drawn in their shapes, with a preview frame that changes shape with the pick; disabled ratios say why.",
+      "registryDependencies": [
+        "@genframe/use-reduced-motion",
+        "@genframe/motion-tokens"
+      ],
+      "files": [
+        {
+          "path": "registry/ui/aspect-ratio-picker/aspect-ratio-picker.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "registry/ui/aspect-ratio-picker/ratio-math.ts",
+          "type": "registry:ui"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 2000
+      }
+    },
+    {
+      "name": "model-picker",
+      "type": "registry:ui",
+      "title": "ModelPicker",
+      "description": "A searchable list of models with their badges and prices, and what a run with the current settings would cost.",
+      "registryDependencies": [
+        "button",
+        "popover",
+        "command",
+        "@genframe/estimate-cost",
+        "@genframe/use-reduced-motion",
+        "@genframe/motion-tokens"
+      ],
+      "files": [
+        {
+          "path": "registry/ui/model-picker/model-picker.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "registry/ui/model-picker/model-filter.ts",
+          "type": "registry:ui"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 2900
+      }
+    },
+    {
+      "name": "prompt-composer",
+      "type": "registry:ui",
+      "title": "PromptComposer",
+      "description": "A prompt box built for generation: text that grows, @-mentions of reference images, preset chips, a character count, and a footer for your toolbar, the cost and submit.",
+      "registryDependencies": [
+        "button",
+        "@genframe/use-reduced-motion",
+        "@genframe/motion-tokens"
+      ],
+      "files": [
+        {
+          "path": "registry/ui/prompt-composer/prompt-composer.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "registry/ui/prompt-composer/mentions.ts",
+          "type": "registry:ui"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 5500
+      }
+    },
+    {
+      "name": "generation-queue",
+      "type": "registry:ui",
+      "title": "GenerationQueue",
+      "description": "Generation jobs as cards in a list: they slide into their new places, a live region announces each change of state, and focus moves on when a card goes.",
+      "registryDependencies": [
+        "@genframe/generation-card",
+        "@genframe/generation-queue-reducer",
+        "@genframe/use-reduced-motion",
+        "@genframe/motion-tokens"
+      ],
+      "files": [
+        {
+          "path": "registry/ui/generation-queue/generation-queue.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "registry/ui/generation-queue/announcements.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "registry/ui/generation-queue/slide.ts",
+          "type": "registry:ui"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 2300
+      }
+    },
+    {
+      "name": "generation-card",
+      "type": "registry:ui",
+      "title": "GenerationCard",
+      "description": "One generation job: queued, running with its progress, its result revealed out of grain, failed or canceled, with the actions for its state.",
+      "registryDependencies": [
+        "button",
+        "@genframe/generation-queue-reducer",
+        "@genframe/denoise-reveal",
+        "@genframe/use-thumbhash",
+        "@genframe/use-reduced-motion",
+        "@genframe/motion-tokens"
+      ],
+      "files": [
+        {
+          "path": "registry/ui/generation-card/generation-card.tsx",
+          "type": "registry:ui"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 2900
+      }
+    },
+    {
+      "name": "denoise-reveal",
+      "type": "registry:ui",
+      "title": "DenoiseReveal",
+      "description": "An image that sharpens out of grain and blur once it has loaded, the way a diffusion model makes one.",
+      "registryDependencies": [
+        "@genframe/use-reduced-motion",
+        "@genframe/motion-tokens"
+      ],
+      "files": [
+        {
+          "path": "registry/ui/denoise-reveal/denoise-reveal.tsx",
+          "type": "registry:ui"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 1200
+      }
+    },
+    {
+      "name": "video-pool",
+      "type": "registry:lib",
+      "title": "createVideoPool",
+      "description": "A fixed set of <video> elements that every card shares for its preview: it never makes more than its size, and takes back the least recently used one.",
+      "files": [
+        {
+          "path": "registry/lib/video-pool.ts",
+          "type": "registry:lib"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 1400
+      }
+    },
+    {
+      "name": "use-video-pool",
+      "type": "registry:hook",
+      "title": "useVideoPool",
+      "description": "One video pool for everything inside VideoPoolProvider, and usePooledVideo, which borrows a video from it while a card should play.",
+      "registryDependencies": [
+        "@genframe/video-pool"
+      ],
+      "files": [
+        {
+          "path": "registry/hooks/use-video-pool.ts",
+          "type": "registry:hook"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 700
+      }
+    },
+    {
+      "name": "masonry-layout",
+      "type": "registry:lib",
+      "title": "Masonry layout",
+      "description": "Masonry math: the lanes at a width, each card placed by its aspect ratio, so a server and the browser place cards the same way at any width.",
+      "files": [
+        {
+          "path": "registry/lib/masonry-layout.ts",
+          "type": "registry:lib"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 900
+      }
+    },
+    {
+      "name": "media-card",
+      "type": "registry:ui",
+      "title": "MediaCard",
+      "description": "An image or video as a link or a button: its poster over a ThumbHash placeholder, and a video preview that plays from the shared pool while the pointer rests on it.",
+      "registryDependencies": [
+        "@genframe/use-video-pool",
+        "@genframe/use-thumbhash",
+        "@genframe/use-reduced-motion",
+        "@genframe/motion-tokens"
+      ],
+      "files": [
+        {
+          "path": "registry/ui/media-card/media-card.tsx",
+          "type": "registry:ui"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 2800
+      }
+    },
+    {
+      "name": "media-grid",
+      "type": "registry:ui",
+      "title": "MediaGrid",
+      "description": "A virtualized masonry grid of media cards whose first screen is placed by CSS before any JavaScript runs, with hover-to-play previews from a shared video pool.",
+      "registryDependencies": [
+        "@genframe/media-card",
+        "@genframe/masonry-layout",
+        "@genframe/use-reduced-motion"
+      ],
+      "files": [
+        {
+          "path": "registry/ui/media-grid/media-grid.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "registry/ui/media-grid/first-screen.ts",
+          "type": "registry:ui"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 3300
+      }
+    },
+    {
+      "name": "timecode",
+      "type": "registry:lib",
+      "title": "Timecode",
+      "description": "Times and frames for video: m:ss and h:mm:ss, SMPTE timecode at any frame rate (23.976 and 29.97 included), frame-accurate seek times, and a time in words for screen readers.",
+      "files": [
+        {
+          "path": "registry/lib/timecode.ts",
+          "type": "registry:lib"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 900
+      }
+    },
+    {
+      "name": "use-scrubber",
+      "type": "registry:hook",
+      "title": "useScrubber",
+      "description": "A scrub bar’s logic without its looks, for any player: the slider pattern with the time in words, pointer and frame-step seeking that never jumps back, buffered ranges, and useMediaElement to wire a <video>.",
+      "registryDependencies": [
+        "@genframe/timecode"
+      ],
+      "files": [
+        {
+          "path": "registry/hooks/use-scrubber.ts",
+          "type": "registry:hook"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 2400
+      }
+    },
+    {
+      "name": "video-scrubber",
+      "type": "registry:ui",
+      "title": "VideoScrubber",
+      "description": "A scrub bar for any video: the time played, buffered ranges, a hover preview with a thumbnail from a sprite sheet and its timecode, and frame-step keys when it has the frame rate.",
+      "registryDependencies": [
+        "@genframe/use-scrubber",
+        "@genframe/timecode",
+        "@genframe/use-reduced-motion",
+        "@genframe/motion-tokens"
+      ],
+      "files": [
+        {
+          "path": "registry/ui/video-scrubber/video-scrubber.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "registry/ui/video-scrubber/sprite-sheet.ts",
+          "type": "registry:ui"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 1700
+      }
+    },
+    {
+      "name": "camera-motion-picker",
+      "type": "registry:ui",
+      "title": "CameraMotionPicker",
+      "description": "Pick a camera move from tiles that loop a clip of it on hover, keyboard focus or a tap, through the shared video pool; with reduced motion, posters and play buttons.",
+      "registryDependencies": [
+        "@genframe/use-video-pool",
+        "@genframe/use-reduced-motion",
+        "@genframe/motion-tokens"
+      ],
+      "files": [
+        {
+          "path": "registry/ui/camera-motion-picker/camera-motion-picker.tsx",
+          "type": "registry:ui"
+        }
+      ],
+      "meta": {
+        "gzipBudget": 2100
+      }
+    }
+  ]
+}

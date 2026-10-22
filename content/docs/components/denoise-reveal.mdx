@@ -1,0 +1,102 @@
+---
+title: DenoiseReveal
+description: An image that sharpens out of grain and blur once it has loaded, the way a diffusion model makes one.
+---
+
+import { denoiseRevealKeyboard } from '@/content/keyboard/denoise-reveal';
+
+<Demo name="denoise-reveal" />
+
+A diffusion model starts from noise and takes it away step by step, until an image is left.
+DenoiseReveal shows a finished result the same way, once: while the image loads, grain covers its
+placeholder; once it's ready, the grain fades out while the image's blur drops to nothing. Replay
+runs it again; Slow motion shows it at a quarter of its speed. [GenerationCard](./generation-card.mdx)
+reveals each result with it.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/denoise-reveal
+```
+
+Or by URL:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/denoise-reveal.json
+```
+
+The URL form needs the namespace mapped too ([Add the registry](../index.mdx#add-the-registry)):
+the reveal brings [useReducedMotion](../utilities/use-reduced-motion.mdx) and the
+[motion tokens](../utilities/motion-tokens.mdx) with it, and shadcn finds them through
+`@genframe`. It lands in `components/ui/denoise-reveal/` and needs no npm packages.
+
+## Usage
+
+```tsx
+import { DenoiseReveal } from "@/components/ui/denoise-reveal/denoise-reveal"
+import { useThumbHash } from "@/hooks/use-thumbhash"
+
+export function Result({ result }: { result: { src: string; width: number; height: number; thumbhash: string } }) {
+  const placeholder = useThumbHash(result.thumbhash)
+  return (
+    <DenoiseReveal
+      src={result.src}
+      alt="A floating island city tethered by cables, under twin moons"
+      width={result.width}
+      height={result.height}
+      placeholder={placeholder}
+      className="w-full max-w-md rounded-lg"
+    />
+  )
+}
+```
+
+The box takes the image's shape from `width` and `height` before it loads, or the size you give
+it in `className`: the image fills it, cropped to cover. The placeholder is any image URL to show
+under the grain until then: a ThumbHash from [useThumbHash](../utilities/use-thumbhash.mdx), or a
+small preview your generator sends ahead of the result.
+
+It reveals once, when it mounts. To reveal again, give it a new `key`, as Replay does. An image
+that came from the cache, or loaded before the page hydrated, is revealed too. For images that were
+there already, like results loaded with the page, `denoise={false}` shows them as they load, with
+no grain: the reveal is for a result that arrives while you watch.
+
+## Props
+
+<AutoTypeTable path="registry/ui/denoise-reveal/denoise-reveal.tsx" name="DenoiseRevealProps" />
+
+## Keyboard
+
+<KeyboardTable keyboard={denoiseRevealKeyboard} />
+
+It's an image, with nothing to press.
+
+## Accessibility
+
+- It's an `img` with your alt text; the grain is decoration, hidden from assistive technology
+  (`aria-hidden`), and takes no pointer events.
+- The image is in the page from the start, only transparent until it's revealed, so screen readers
+  find it and its alt text at once.
+- A broken image is shown as the browser shows it, with its alt text, rather than grain forever.
+
+## Motion
+
+- The grain is SVG `feTurbulence` noise: four channels of fractal noise, stretched for contrast and
+  blended in hard light, so the placeholder's colors show through it, as in a diffusion model's
+  first steps. It's drawn once and never moves: it only fades. Once the fade is over, it leaves the
+  page.
+- When the image has loaded and decoded, the grain fades out while the image fades in and its blur
+  drops from 24 px to nothing, all over `--genframe-duration-reveal` (600 ms) with
+  `--genframe-ease-out`. Only `opacity` and `filter` animate, which the browser can run on the
+  compositor.
+- With reduced motion there's no grain and no blur: the image fades in over
+  `--genframe-duration-fast` (120 ms).
+- What it costs, measured in Chrome on a laptop GPU (an M1 Pro) with a 960 px image shown at 748
+  device pixels: frames stay at 16.7 ms, 60 a second, also with the CPU slowed four times. The page
+  paints about three more times per reveal than for a plain fade (the grain when it appears, and
+  where it was when it goes), not once per frame, and the GPU blurs and blends for about 2 ms a
+  frame. The numbers, and the script that measures them, are in the repository's `docs/PERF.md`.
+
+## Changelog
+
+- **0.0.5**: First release.

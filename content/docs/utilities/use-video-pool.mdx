@@ -1,0 +1,90 @@
+---
+title: useVideoPool
+description: One video pool for everything inside VideoPoolProvider, and usePooledVideo, which borrows a video from it while a card should play.
+---
+
+[MediaCard](../components/media-card.mdx) and [MediaGrid](../components/media-grid.mdx) preview
+their clips with videos borrowed from one [pool](./video-pool.mdx). `VideoPoolProvider` makes that
+pool for everything inside it; `usePooledVideo` is how a card borrows from it, for components of
+your own that preview a clip.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/use-video-pool
+```
+
+Or by URL:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/use-video-pool.json
+```
+
+The URL form needs the namespace mapped too ([Add the registry](../index.mdx#add-the-registry)): it
+brings [createVideoPool](./video-pool.mdx), and shadcn finds it through `@genframe`. It lands in
+`hooks/use-video-pool.ts`.
+
+## Usage
+
+Put one provider above everything that previews, once per page:
+
+```tsx
+import type { ReactNode } from "react"
+import { VideoPoolProvider } from "@/hooks/use-video-pool"
+
+export function Page({ children }: { children: ReactNode }) {
+  return <VideoPoolProvider>{children}</VideoPoolProvider>
+}
+```
+
+The pool isn't made on the server, nor during hydration: right after it, in a task of its own, so
+it doesn't add to the page's start-up, and Safari's first-click unlock listens from the start. Or on
+first use, whichever comes first. The context's value is the same object on the server and in the
+browser, so nothing renders again after hydration because of it. Unmounting the provider empties
+the pool; a new `size` makes a new one.
+
+A preview of your own borrows a video while it should play:
+
+```tsx
+import { useRef } from "react"
+import { usePooledVideo } from "@/hooks/use-video-pool"
+
+export function Preview({ id, src, since }: { id: string; src: string; since: number | null }) {
+  const slot = useRef<HTMLDivElement>(null)
+  const showing = usePooledVideo(slot, id, src, since)
+  return (
+    <div
+      ref={slot}
+      aria-hidden="true"
+      className={showing ? "opacity-100" : "opacity-0"}
+    />
+  )
+}
+```
+
+`since` is when playback was asked for (`performance.now()`), or `null` while it shouldn't play.
+While it's a time, the pool's video sits in the slot and plays; back to `null`, it's released, warm.
+`showing` turns true once that request's first frame is painted, so the slot can stay transparent
+over your poster until then. A new `since` hides it again until its own first frame.
+
+## API
+
+### VideoPoolProvider
+
+<AutoTypeTable path="registry/hooks/use-video-pool.ts" name="VideoPoolProviderProps" />
+
+### useVideoPool()
+
+The nearest provider's pool, or `null` outside one: then nothing previews. Read its `liveCount()`,
+`steals()` and `size` for a debug overlay, as the playground does.
+
+### usePooledVideo(slot, cardId, src, since, options?)
+
+Returns whether the video is showing. `cardId` is unique per card: a card that asks again gets its
+own warm video back. `options`:
+
+<AutoTypeTable path="registry/hooks/use-video-pool.ts" name="PooledVideoOptions" />
+
+## Changelog
+
+- **0.0.6**: First release, from Generation Feed's video pool context and PooledPreview.

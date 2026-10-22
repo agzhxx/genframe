@@ -1,0 +1,108 @@
+---
+title: Timecode
+description: Times and frames for video. Clock times and SMPTE timecode, read and written, at any frame rate, NTSC rates included; frame-accurate seek times; and a time in words for screen readers.
+---
+
+[VideoScrubber](../components/video-scrubber.mdx) and [useScrubber](./use-scrubber.mdx) count time
+with these. They're plain functions, with no dependencies, for anything else that shows or reads a
+video's time: a time display, a "go to" box, a clip's length.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/timecode
+```
+
+Or by URL, without setting up the namespace:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/timecode.json
+```
+
+It lands in `lib/timecode.ts`.
+
+## Usage
+
+```ts
+import {
+  formatTime,
+  formatTimecode,
+  parseTime,
+  secondsToFrames,
+  snapToFrame,
+  spokenTime,
+} from "@/lib/timecode"
+
+formatTime(64) // "1:04"
+formatTime(3723) // "1:02:03"
+parseTime("1:04.5") // 64.5
+
+secondsToFrames(4.52, 24) // 108: the frame showing at 4.52 s
+formatTimecode(108, 24) // "00:00:04:12"
+video.currentTime = snapToFrame(4.52, 24) // 4.5208…: the middle of frame 108
+
+spokenTime(64) // "1 minute 4 seconds"
+spokenTime(4.52, 24) // "4 seconds 12 frames"
+```
+
+### Frames
+
+- **The frame showing at a time** is the last one that starts at or before it, as players show
+  them. A time a microsecond before a frame starts counts as that frame: players report times in
+  whole microseconds, frames at 24 or 30 fps start between them (frame 1 at 24 fps starts at
+  41,666.67 µs), and float math has its own error (1.16 × 25 is 28.999999999999996).
+- **To show a frame, seek to its middle** (`snapToFrame`). Browsers show the frame whose span holds
+  the time you give them; at the frame's start, a time rounded down by the browser or stored rounded
+  by the container shows the frame before.
+- **NTSC rates** (23.976, 29.97, 47.952, 59.94, 119.88) are read as the exact ones, 24000/1001 and
+  so on. A rounded rate drifts: at 29.97, frame 1,800 would start 60 µs late, past that microsecond.
+- **A video's frames** (`frameCount`) allow for a length rounded up to the millisecond, as WebM
+  stores it.
+
+### Timecode
+
+`formatTimecode` writes SMPTE `HH:MM:SS:FF`, counting frames to the rate rounded: 24 a second at
+23.976, 30 at 29.97. It drops no frames, so at 29.97 the timecode falls 3.6 seconds an hour behind
+the clock (an hour of video is `00:59:56:12`); clock times (`formatTime`) are exact. These are the
+same rules as Storyboard Timeline's timecode.
+
+## API
+
+### formatTime(seconds, options?) and parseTime(text)
+
+`m:ss`, or `h:mm:ss` from an hour on, in whole seconds rounded down; `{ hours: true }` always shows
+hours, for times on a video an hour long or more, so they keep their width. `parseTime` reads `s`,
+`m:ss` or `h:mm:ss`, with a fraction of a second if you like, or returns `null`; seconds after a
+colon, and minutes after hours, go up to 59.
+
+### formatTimecode(frames, fps) and parseTimecode(text, fps)
+
+`HH:MM:SS:FF` from a frame number, and back. `parseTimecode` takes the end of a timecode too
+(`04:12` is 4 seconds 12 frames), and returns `null` for frames past the rate or minutes and seconds
+past 59.
+
+### secondsToFrames(seconds, fps) and framesToSeconds(frames, fps)
+
+The frame showing at a time, and where a frame starts. Times before 0, or not finite, are frame 0.
+
+### snapToFrame(seconds, fps)
+
+The middle of the frame showing at a time: where to seek to show it.
+
+### frameCount(duration, fps)
+
+How many frames a video of that length holds; the last one is `frameCount - 1`.
+
+### exactFps(fps)
+
+The exact rate for a rounded NTSC rate (`exactFps(29.97)` is 30000/1001); other rates as they are.
+Every function here calls it.
+
+### spokenTime(seconds, fps?)
+
+A time in words, for `aria-valuetext`: "1 hour 2 minutes 3 seconds", leaving out parts that are 0;
+with `fps`, the timecode with its frames, "4 seconds 12 frames". No time at all is "0 seconds".
+
+## Changelog
+
+- **0.0.7**: First release.

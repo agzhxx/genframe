@@ -1,0 +1,129 @@
+---
+title: GenerationQueue
+description: Generation jobs as cards in a list. Each shows its place in line, its progress or its result, and screen readers hear every change of state.
+---
+
+import { generationQueueKeyboard } from '@/content/keyboard/generation-queue';
+
+<Demo name="generation-queue" />
+
+Add a few jobs and watch them wait in line, run two at a time and finish. They run on the
+[simulated generator](../utilities/simulated-generator.mdx), and what they make are the Feed's
+images. Try failures, unknown progress or another speed; cancel a job that's waiting (it's
+refunded), retry a failed one, and remove finished ones: the others slide into the gap.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/generation-queue
+```
+
+Or by URL:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/generation-queue.json
+```
+
+The URL form needs the namespace mapped too ([Add the registry](../index.mdx#add-the-registry)):
+the queue brings Genframe items with it, and shadcn finds them through `@genframe`:
+[GenerationCard](./generation-card.mdx), [DenoiseReveal](./denoise-reveal.mdx), the
+[queue's reducer](../utilities/generation-queue-reducer.mdx), [useThumbHash](../utilities/use-thumbhash.mdx)
+(with the `thumbhash` package), [useReducedMotion](../utilities/use-reduced-motion.mdx) and the
+[motion tokens](../utilities/motion-tokens.mdx).
+
+It lands in `components/ui/generation-queue/`: the component, its announcements
+(`announcements.ts`) and its slide (`slide.ts`). It shows jobs; to run them, add
+[useGenerationQueue](../utilities/use-generation-queue.mdx) as well.
+
+## Usage
+
+```npm
+npx shadcn@latest add @genframe/use-generation-queue
+```
+
+```tsx
+import { GenerationQueue } from "@/components/ui/generation-queue/generation-queue"
+import { useGenerationQueue, type GenerationDriver } from "@/hooks/use-generation-queue"
+
+export function Generations({ driver }: { driver: GenerationDriver }) {
+  const queue = useGenerationQueue({ driver, concurrency: 2 })
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          queue.submit({ kind: "image", prompt: "A red car on a mountain road", ratio: "16:9" })
+        }}
+      >
+        Generate
+      </button>
+      <GenerationQueue
+        jobs={queue.jobs}
+        concurrency={2}
+        onCancel={(job) => queue.cancel(job.id)}
+        onRetry={(job) => queue.retry(job.id)}
+        onRemove={(job) => queue.remove(job.id)}
+        onOpen={(job) => {
+          // Show job.result: in a dialog, a compare slider, a page of its own.
+        }}
+      />
+    </>
+  )
+}
+```
+
+The driver is what generates: your API behind one function, or the
+[simulated generator](../utilities/simulated-generator.mdx) for demos and tests.
+[useGenerationQueue](../utilities/use-generation-queue.mdx) shows how to write one.
+
+The queue shows the jobs in the order it gets them; useGenerationQueue's are newest first. Pass
+it the same `concurrency` as the hook: it works out how long a queued job will take from the slots
+ahead of it. A button shows only when its callback is there: without `onRetry`, no Retry.
+
+## Props
+
+<AutoTypeTable path="registry/ui/generation-queue/generation-queue.tsx" name="GenerationQueueProps" />
+
+Each job is the [queue's reducer](../utilities/generation-queue-reducer.mdx)'s `GenerationJob`.
+
+## Keyboard
+
+<KeyboardTable keyboard={generationQueueKeyboard} />
+
+The cards themselves aren't in the tab order, only their buttons. When a card is removed, focus
+lands on the next card itself, so screen readers say which one it is; Tab goes on to its buttons.
+
+## Accessibility
+
+- A plain list, a `ul` named "Generations" (or your `aria-label` or `aria-labelledby`). Each card
+  is an `article` named after its job ("Image 3") and described by its state ("2nd in line · done
+  in about 40 s"). Not the WAI-ARIA feed pattern: that one is for endless streams of articles, with
+  Page Up and Page Down between them, and a queue is short, with buttons in every card.
+- A polite live region says each change of state: "Image 3 queued", "Image 3 started" (when it
+  starts at once, or again after a retry), "Image 3 is ready", "Video 2 failed: The model timed
+  out", "Image 4 canceled, refunded", "Image 3 removed". Several changes at once make one message,
+  oldest job first. Never progress, which would interrupt every second: the progress bar has it for
+  whoever looks. Nothing about the jobs the queue starts with, either.
+- When the card that has focus goes, focus moves to the next card, or the one before, or the list.
+  When a card's focused button goes with its state, like Cancel once the job is done, focus stays
+  on the card.
+- The places in line and the times left come from the reducer's selectors. The time ticks once a
+  second while any job is queued or running, and isn't in the server's HTML, so hydration agrees.
+
+## Motion
+
+- When the order changes (a job joins at the top, one is removed), the cards slide to their new
+  places over `--genframe-duration-base` with `--genframe-ease-out`. It's FLIP: each card's place
+  is read before and after the change (First, Last), a transform puts it back where it showed
+  (Invert), and letting go of the transform lets its CSS transition take it to its new place
+  (Play). Only transforms move, so nothing is laid out again; a slide under way when the order
+  changes again goes on from where it is.
+- A job that joins rises 8 px into place as it fades in. The cards there from the start don't.
+- With reduced motion, the cards jump to their places, and a new one only fades in.
+- Each card's own motion, its progress bar, its pulse while progress is unknown and its result's
+  reveal, is on [GenerationCard](./generation-card.mdx#motion)'s page.
+
+## Changelog
+
+- **0.0.5**: First release.

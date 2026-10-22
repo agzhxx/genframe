@@ -1,0 +1,118 @@
+---
+title: useScrubber
+description: A scrub bar's logic without its looks, for any player. The WAI-ARIA slider pattern with the time in words, seeking by pointer and by frame that never jumps back, buffered ranges, and useMediaElement to wire a video.
+---
+
+[VideoScrubber](../components/video-scrubber.mdx) is this hook with Genframe's looks. Use the hook
+to draw a scrub bar of your own: it gives you the time to show, the buffered ranges, the time under
+the pointer, and the props that make an element a slider. `useMediaElement`, in the same file,
+wires it to a `<video>`.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/use-scrubber
+```
+
+Or by URL:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/use-scrubber.json
+```
+
+The URL form needs the namespace mapped too ([Add the registry](../index.mdx#add-the-registry)): it
+brings the [timecode helpers](./timecode.mdx), and shadcn finds them through `@genframe`. It lands
+in `hooks/use-scrubber.ts`.
+
+## Usage
+
+```tsx
+import { useRef } from "react"
+import { useMediaElement, useScrubber } from "@/hooks/use-scrubber"
+
+export function Scrubber() {
+  const video = useRef<HTMLVideoElement>(null)
+  const { progress, buffered, hover, sliderProps } = useScrubber({ ...useMediaElement(video), fps: 24 })
+  return (
+    <>
+      <video ref={video} src="/clip.mp4" playsInline />
+      <div {...sliderProps} aria-label="Seek" className="relative h-6 touch-pan-y">
+        {buffered.map((range) => (
+          <div
+            key={range.start}
+            className="absolute inset-y-2 left-0 w-full origin-left bg-black/20"
+            style={{ transform: `translateX(${range.start * 100}%) scaleX(${range.end - range.start})` }}
+          />
+        ))}
+        <div className="absolute inset-y-2 left-0 w-full origin-left bg-black" style={{ transform: `scaleX(${progress})` }} />
+        {hover ? <span style={{ left: `${hover.fraction * 100}%` }}>{hover.time.toFixed(2)}</span> : null}
+      </div>
+    </>
+  )
+}
+```
+
+Spread `sliderProps` on the element that is the slider, and give it a name. It takes the keys and
+the pointers itself: give it `touch-action: pan-y` (`touch-pan-y`), so a swipe along it scrubs and
+a swipe up or down still scrolls the page.
+
+### How it seeks
+
+- **A mouse** seeks where it presses, and drags from there. **A touch** waits: a tap seeks where it
+  lifts, a move of 6 px along the bar starts a drag, and a swipe the browser takes for a scroll
+  does nothing.
+- **Keys**: ←/→ (and ↓/↑) 5 seconds, Home and End, and with `fps`, `,` and `.` a frame. A key
+  that wouldn't move the time doesn't seek.
+- **With `fps`**, every seek but the start and the end goes to the middle of a frame, which shows
+  that frame whatever the browser's rounding. A frame key at the first or last frame stays put.
+- **While a drag is under way,** `time` is the drag's, whatever the player reports: a playing video
+  and a seek in flight don't pull the bar back. `onSeek` is called on every move, and
+  `onScrubStart` and `onScrubEnd` bracket the drag.
+- **After a seek,** `time` is where it asked to go until the player reports a different time, so the
+  bar never jumps back to the old time while the player catches up, and a second key press goes on
+  from the first.
+
+### useMediaElement
+
+`useMediaElement(ref)` reads a `<video>` (or `<audio>`) and returns `duration`, `currentTime`,
+`buffered`, `onSeek`, `onScrubStart` and `onScrubEnd`, so it spreads straight into `useScrubber` or
+`VideoScrubber`:
+
+- the time while it plays is the time of the frame on screen, from `requestVideoFrameCallback`
+  (else every animation frame), not `timeupdate`'s four times a second, so the bar moves with the
+  picture and the timecode is the frame you see;
+- a seek asked for while another is under way waits for it, and only the latest one goes, so a
+  drag shows frames as it goes instead of starting a seek on every move;
+- the time it asked for is reported at once;
+- a drag pauses the video, and it plays on after if it was playing.
+
+Keep the element the same; change its `src` as you like, and it starts over.
+
+## API
+
+### useScrubber(options)
+
+<AutoTypeTable path="registry/hooks/use-scrubber.ts" name="ScrubberOptions" />
+
+Returns:
+
+<AutoTypeTable path="registry/hooks/use-scrubber.ts" name="Scrubber" />
+
+### useMediaElement(ref)
+
+Returns `{ duration, currentTime, buffered, onSeek, onScrubStart, onScrubEnd }`; `duration` is NaN
+until the video's metadata has loaded, and the slider stays disabled until then.
+
+### The arithmetic
+
+The hook's rules are plain functions, for scrubbers of your own:
+
+- `seekTime(time, duration, fps?)`: a seek within the video, in the middle of its frame with `fps`.
+- `timeForKey(key, time, duration, fps?)`: where a key goes, or `null`.
+- `pointerTime(clientX, box, duration, fps?)`: the time and the place along the bar under a pointer.
+- `frameAt(time, duration, fps)`: the frame showing, never past the last.
+- `bufferedFractions(ranges, duration)`: buffered ranges as fractions of the duration, merged.
+
+## Changelog
+
+- **0.0.7**: First release.

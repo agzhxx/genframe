@@ -1,0 +1,101 @@
+---
+title: estimateCost
+description: What a generation will cost, from a model's price and the run's settings. Exact, and rounded once.
+---
+
+Generation is priced in small decimals, like $0.042 a second, and floating-point arithmetic gets
+them slightly wrong: `0.042 * 5` is `0.21000000000000002`, and `Math.round(1.005 * 100) / 100` is
+`1`, not `1.01`. `estimateCost` works on exact decimals and rounds once, at the end, to the
+currency's smallest unit. [ModelPicker](../components/model-picker.mdx) shows its estimates; use it
+wherever else you show a cost, like a prompt box's cost hint.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/estimate-cost
+```
+
+Or by URL, without setting up the namespace:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/estimate-cost.json
+```
+
+It lands in `lib/estimate-cost.ts` (wherever your `lib` alias points) and has no dependencies.
+
+## Usage
+
+A price is an amount per unit: a second of video, an image or a video. The settings say how
+much of it a run makes.
+
+```ts
+import { estimateCost, formatEstimate, type ModelPrice } from "@/lib/estimate-cost"
+
+const price: ModelPrice = { amount: 0.042, unit: "second" }
+
+const estimate = estimateCost({ price }, { duration: 5 })
+// {
+//   lines: [{ unit: "second", quantity: 5, unitPrice: 0.042, amount: 0.21 }],
+//   subtotal: 0.21,
+//   total: 0.21,
+//   currency: "USD",
+// }
+
+if (estimate) {
+  const { breakdown, total } = formatEstimate(estimate)
+  // breakdown: "5 s × $0.042", total: "≈ $0.21"
+}
+```
+
+The first argument is anything with a `price`, so a model from your own list works as it is.
+`count` multiplies everything: two 5-second videos are 10 seconds. A price can add an amount for
+each reference image, charged for every image or video the run makes, on a line of its own:
+
+```ts
+const grok = { price: { amount: 0.08, unit: "image", perReference: 0.01 } } as const
+
+const estimate = estimateCost(grok, { count: 2, references: 2 })
+// lines: 2 images × $0.08, then 4 references × $0.01; total: 0.2.
+// formatEstimate: "2 images × $0.08 + 4 refs × $0.01" and "≈ $0.20"
+```
+
+`total` is rounded half up to the currency's smallest unit (cents for dollars, whole yen for
+yen); `subtotal` keeps the exact sum. When a total rounds to nothing, `formatEstimate` says
+"< $0.01". A price per second can't be estimated without a duration: `estimateCost` returns
+`null`, and `formatPrice` words the price itself ("$0.042 / s").
+
+`formatEstimate` and `formatPrice` write English with the locale's numbers (`"en-US"` unless you
+pass another). For other words, build your own text from the estimate's lines.
+
+## API
+
+### estimateCost(model, settings?)
+
+Returns a `CostEstimate`, or `null` for a price per second without a `duration`. Throws a
+`RangeError` for a negative or non-finite number, a count or a number of references that isn't
+whole, or an unknown currency.
+
+<AutoTypeTable path="registry/lib/estimate-cost.ts" name="ModelPrice" />
+
+<AutoTypeTable path="registry/lib/estimate-cost.ts" name="CostSettings" />
+
+### CostEstimate
+
+<AutoTypeTable path="registry/lib/estimate-cost.ts" name="CostEstimate" />
+
+Each of its `lines`:
+
+<AutoTypeTable path="registry/lib/estimate-cost.ts" name="CostLine" />
+
+### formatEstimate(estimate, locale?)
+
+Returns `{ breakdown, total }`: `"5 s × $0.042"` and `"≈ $0.21"`, `"< $0.01"` when the total
+rounds to nothing, or `"$0.00"` when it is nothing. Unit prices show every decimal they have.
+
+### formatPrice(price, locale?)
+
+Returns the price per unit: `"$0.042 / s"`, `"$0.08 / image + $0.01 / ref"`.
+
+## Changelog
+
+- **0.0.4**: First release.

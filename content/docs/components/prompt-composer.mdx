@@ -1,0 +1,203 @@
+---
+title: PromptComposer
+description: A prompt box built for generation, not chat. Text that grows, @-mentions of reference images, preset chips, a character count, and a footer for your toolbar, the cost and submit.
+---
+
+import {
+  promptComposerKeyboard,
+  promptComposerMentionKeyboard,
+  promptComposerReferenceKeyboard,
+} from '@/content/keyboard/prompt-composer';
+
+<Demo name="prompt-composer" />
+
+Type a prompt, add reference images by picking, dropping or pasting them, and mention them with
+`@name`: the mentioned ones are ringed below the text. Preset chips, like camera moves and styles,
+switch on and off. Your own controls go in the footer's toolbar, next to the cost of a run and the
+submit button; above, ModelPicker and a compact AspectRatioPicker sit there.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/prompt-composer
+```
+
+Or by URL:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/prompt-composer.json
+```
+
+The URL form needs the namespace mapped too ([Add the registry](../index.mdx#add-the-registry)):
+the composer brings two Genframe items with it, [useReducedMotion](../utilities/use-reduced-motion.mdx)
+and the [motion tokens](../utilities/motion-tokens.mdx), and shadcn finds them through
+`@genframe`.
+
+It lands in `components/ui/prompt-composer/`: the component and its mentions (`mentions.ts`). It
+uses shadcn's `button`, which `shadcn add` installs when your app doesn't have it yet, and needs
+no npm packages.
+
+## Usage
+
+```tsx
+import { PromptComposer, type PresetGroup } from "@/components/ui/prompt-composer/prompt-composer"
+
+const presets: PresetGroup[] = [
+  {
+    label: "Camera",
+    presets: [
+      { id: "dolly-in", label: "Dolly in" },
+      { id: "orbit", label: "Orbit" },
+    ],
+  },
+  { label: "Style", presets: [{ id: "film", label: "Film still" }] },
+]
+
+export function Composer() {
+  return (
+    <PromptComposer
+      placeholder="Describe the shot"
+      presets={presets}
+      maxReferences={4}
+      maxLength={1000}
+      onSubmit={(submission) => {
+        // Upload the files of submission.references, then start the run.
+      }}
+    />
+  )
+}
+```
+
+Cmd+Enter (Ctrl+Enter on Windows and Linux) submits, and Enter adds a line, as in a prompt that
+takes a few lines to write. With `submitOnEnter`, Enter submits and Shift+Enter adds a line. The
+text stays after a submission, ready to be tweaked and sent again; control `value` to clear it.
+An empty prompt can't be submitted, nor one past `maxLength`.
+
+### References and mentions
+
+Reference images come in two kinds: images your app already has, with a `src`, and images the
+user adds, with a `file`, which the composer shows through an object URL and revokes when they're
+removed. It never uploads anything: `onReferencesChange` and `onSubmit` hand you the files.
+
+A file's reference is named after it, lowercased, with every run of other characters turned into
+"-": "Red Car (2).png" becomes `@red-car-2`, and a taken name gets "-2". Names are letters,
+digits, "-" and "_", unique ignoring case; give your own references names like that too.
+
+Mentions are plain text. To turn them into what your API takes, `findMentions` from
+`mentions.ts` says where each one is:
+
+```ts
+import { findMentions } from "@/components/ui/prompt-composer/mentions"
+import type { PromptReference } from "@/components/ui/prompt-composer/prompt-composer"
+
+// "@car on the @alley" → "[image 1] on the [image 2]", for an API that takes a list of images.
+function apiPrompt(text: string, references: PromptReference[]) {
+  let prompt = text
+  for (const mention of findMentions(text).toReversed()) {
+    const index = references.findIndex(
+      (reference) => reference.name.toLowerCase() === mention.name.toLowerCase()
+    )
+    if (index === -1) continue
+    prompt = `${prompt.slice(0, mention.start)}[image ${index + 1}]${prompt.slice(mention.end)}`
+  }
+  return prompt
+}
+```
+
+`maxReferences={0}` leaves references and mentions out.
+
+### Toolbar and cost
+
+```tsx
+<PromptComposer
+  toolbar={
+    <>
+      <ModelPicker models={models} value={modelId} onValueChange={setModelId} />
+      <AspectRatioPicker compact value={ratio} onValueChange={setRatio} />
+    </>
+  }
+  costHint="5 s × $0.042 ≈ $0.21"
+/>
+```
+
+[ModelPicker](./model-picker.mdx) and [AspectRatioPicker](./aspect-ratio-picker.mdx) with
+`compact` fit the toolbar. Work the cost hint out with
+[`estimateCost`](../utilities/estimate-cost.mdx), from the same settings as the run. `disabled`
+disables everything inside the composer, the toolbar's controls too: it's a `fieldset`.
+
+## Props
+
+<AutoTypeTable path="registry/ui/prompt-composer/prompt-composer.tsx" name="PromptComposerProps" />
+
+Each reference:
+
+<AutoTypeTable path="registry/ui/prompt-composer/prompt-composer.tsx" name="PromptReference" />
+
+Each group of presets:
+
+<AutoTypeTable path="registry/ui/prompt-composer/prompt-composer.tsx" name="PresetGroup" />
+
+What `onSubmit` gets:
+
+<AutoTypeTable path="registry/ui/prompt-composer/prompt-composer.tsx" name="PromptSubmission" />
+
+## Keyboard
+
+In the prompt box:
+
+<KeyboardTable keyboard={promptComposerKeyboard} />
+
+With `submitOnEnter`, Enter submits and Shift+Enter adds a line.
+
+While the list of references is open, focus stays in the prompt box:
+
+<KeyboardTable keyboard={promptComposerMentionKeyboard} />
+
+On a reference's remove button:
+
+<KeyboardTable keyboard={promptComposerReferenceKeyboard} />
+
+Everything else is reached with Tab: the references' remove buttons, the add button, the presets
+(checkboxes, toggled with Space), the toolbar and the submit button. While an input method (IME)
+composes, Enter and the arrow keys are its own: the composer never submits or inserts a mention
+in the middle of a composition.
+
+## Accessibility
+
+- The prompt box is a `textarea` named "Prompt" (or your `aria-label` or `aria-labelledby`). With
+  `maxLength`, the count describes it ("120 of 300 characters"), and past the limit it's
+  `aria-invalid`.
+- Mentions follow the WAI-ARIA [combobox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/)
+  as far as a textarea can: HTML allows it no role but its own, and `aria-expanded` isn't allowed
+  on a text box. So it keeps its role and points at the list the same way: `aria-autocomplete="list"`,
+  `aria-haspopup="listbox"`, `aria-controls` on the `listbox` named "References", and
+  `aria-activedescendant` on the active option, the one with `aria-selected="true"`. A polite status
+  says how many references match and how to choose one.
+- The references are a list named "References". Each one shows its `@name`, with ", mentioned" for
+  screen readers when the prompt mentions it, and has a remove button named "Remove @car".
+  Adding, by picking, dropping or pasting, and removing are announced ("Added @car", "Removed
+  @car"), and so are skipped files: not images, or no room left. After a removal, focus moves to
+  the next reference, the previous one, or the add button.
+- Presets are checkboxes in groups named by their labels. A chip that's on shows a check mark, not
+  only a color.
+- The submit button says its shortcut (`aria-keyshortcuts`) and is described by the cost hint.
+  While `loading`, the composer is `aria-busy` and the button is disabled; the prompt stays
+  editable.
+- Near `maxLength`, in its last tenth, screen readers hear how many characters are left, once
+  typing pauses rather than at every key.
+
+## Motion
+
+- The list of references drops 4 px into place as it fades in, over `--genframe-duration-fast`.
+  With reduced motion, it only fades.
+- A reference the user adds grows from 90% as it fades in, over `--genframe-duration-base`, so you
+  see where it landed; the first ones don't move. With reduced motion, it only fades.
+- A mentioned reference's ring fades in over `--genframe-duration-fast`; with reduced motion, it
+  appears at once. The same goes for the overlay that shows while files are dragged over.
+- The submit button's spinner turns while `loading`; with reduced motion, it stays still.
+- Everything enters with CSS `@starting-style` (Tailwind's `starting:` variant) and animates
+  `transform` and `opacity` only: no JavaScript runs the motion.
+
+## Changelog
+
+- **0.0.4**: First release.

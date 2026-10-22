@@ -1,0 +1,148 @@
+---
+title: VideoScrubber
+description: A scrub bar for any video. It shows the time played and what's buffered, previews the time under the pointer with a thumbnail and its timecode, and steps frame by frame when it knows the frame rate.
+---
+
+import { videoScrubberKeyboard } from '@/content/keyboard/video-scrubber';
+
+<Demo name="video-scrubber" />
+
+One of Generation Feed's story clips, 5 seconds at 24 fps, in a plain `<video>`, with a sprite
+sheet of its thumbnails. Rest the pointer on the bar to preview a time, click or drag to go there,
+or Tab to it and use the keys: with a frame rate, `,` and `.` step a frame. Pick the example
+buffered ranges to see gaps, since a clip this short buffers in a blink.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/video-scrubber
+```
+
+Or by URL:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/video-scrubber.json
+```
+
+The URL form needs the namespace mapped too ([Add the registry](../index.mdx#add-the-registry)):
+the scrubber brings [useScrubber](../utilities/use-scrubber.mdx), the
+[timecode helpers](../utilities/timecode.mdx), [useReducedMotion](../utilities/use-reduced-motion.mdx)
+and the [motion tokens](../utilities/motion-tokens.mdx), and shadcn finds them through `@genframe`.
+It lands in `components/ui/video-scrubber/`.
+
+## Usage
+
+With a `<video>`, `useMediaElement` reads everything the scrubber needs and seeks the video for it:
+
+```tsx
+import { useRef } from "react"
+import { useMediaElement } from "@/hooks/use-scrubber"
+import { VideoScrubber } from "@/components/ui/video-scrubber/video-scrubber"
+
+const sprite = { url: "/sprites/shot-10.webp", columns: 5, rows: 5, interval: 0.25, width: 160, height: 90 }
+
+export function Player({ src }: { src: string }) {
+  const video = useRef<HTMLVideoElement>(null)
+  const media = useMediaElement(video)
+  return (
+    <div className="flex flex-col gap-2">
+      <video ref={video} src={src} playsInline className="w-full" />
+      <VideoScrubber {...media} fps={24} sprite={sprite} />
+    </div>
+  )
+}
+```
+
+### Any player
+
+The scrubber takes times and gives back seeks, so it works with any player: pass its `duration`
+and `currentTime` in seconds, and seek in `onSeek`. `buffered` takes its buffered ranges as
+`{ start, end }` pairs, and `onScrubStart` and `onScrubEnd` bracket a drag, for a player that should
+pause meanwhile:
+
+```tsx
+<VideoScrubber
+  duration={player.duration}
+  currentTime={player.currentTime}
+  buffered={player.bufferedRanges}
+  onSeek={(time) => player.seek(time)}
+  onScrubStart={() => player.pause()}
+  onScrubEnd={() => player.play()}
+/>
+```
+
+While you drag, the bar shows the drag, whatever the player reports. After a seek, it shows where
+you asked to go until the player reports a new time, so it never jumps back while the player
+catches up. Report the new time as soon as you seek, as `useMediaElement` does.
+
+### Thumbnails
+
+The preview shows a thumbnail of the time under the pointer from `sprite`, a sprite sheet: one
+image of tiles, read left to right and top to bottom, one every `interval` seconds, each `width` by
+`height` pixels. That's the shape most players use. Or give `getThumbnail(time)`, which returns an
+image (or a region of one) for any time. Thumbnails show `thumbnailWidth` wide, 160 px unless you
+say; make tiles twice that for sharp previews on high-density screens, at about three times the
+bytes. The sprite loads with the page, so the first hover has it.
+
+The demo's sprites were made by `scripts/make-sprites.ts` in Genframe's repository, from the Feed's
+clips: 21 tiles of 160 × 90, a tile every quarter second, about 33 to 45 KB of WebP each. With
+ffmpeg, a sheet of a tile every quarter second is:
+
+```bash
+ffmpeg -i clip.mp4 -vf "fps=4,scale=160:90,tile=5x5" -frames:v 1 sprite.png
+```
+
+### Frames
+
+With `fps`, the scrubber works in frames: `,` and `.` step one, pointer seeks land on one, the
+preview shows SMPTE timecode (`00:00:04:12`), and screen readers hear the frames too. Every seek
+goes to the middle of a frame, which shows that frame whatever the browser's or the container's
+rounding, where its start can show the frame before. Write NTSC rates either way: 29.97 is read as
+30000/1001, 23.976 as 24000/1001. Timecode counts frames without dropping any, so at 29.97 it falls
+3.6 seconds an hour behind the clock.
+
+## Props
+
+<AutoTypeTable path="registry/ui/video-scrubber/video-scrubber.tsx" name="VideoScrubberProps" />
+
+### SpriteSheet
+
+<AutoTypeTable path="registry/ui/video-scrubber/sprite-sheet.ts" name="SpriteSheet" />
+
+### Thumbnail
+
+What `getThumbnail` returns; `x` and `y` are 0 for a whole image.
+
+<AutoTypeTable path="registry/ui/video-scrubber/sprite-sheet.ts" name="Thumbnail" />
+
+## Keyboard
+
+<KeyboardTable keyboard={videoScrubberKeyboard} />
+
+A click or a drag also moves focus to the bar, so the keys work from there. On a touch screen, a tap
+goes to the time under it and a drag along the bar scrubs; swipes up and down still scroll the page.
+
+## Accessibility
+
+- The bar follows the WAI-ARIA [slider pattern](https://www.w3.org/WAI/ARIA/apg/patterns/slider/):
+  `role="slider"`, `aria-valuemin` 0, `aria-valuemax` the duration and `aria-valuenow` the time, in
+  seconds, and `aria-orientation` horizontal.
+- `aria-valuetext` says the time in words, "1 minute 4 seconds of 2 minutes", with the frame when it
+  knows the frame rate: "4 seconds 12 frames of 5 seconds". So a frame step is heard as one.
+- It's named "Seek": set `aria-label` or `aria-labelledby` to name what it seeks in.
+- Until the duration is known, it's `aria-disabled` and takes no keys or pointers.
+- The preview is for pointers and is hidden from screen readers; keyboard users see the video
+  itself move.
+- The bar is 24 px tall to hit, with a focus ring around it.
+
+## Motion
+
+- The thumb grows in while the pointer is over the bar, while it has keyboard focus and while you
+  drag, and the preview fades in, over `--genframe-duration-fast`.
+- The time played never animates: it follows the player's time, frame by frame while it plays, and
+  goes straight to a seek. Only transforms move it.
+- With reduced motion, the thumb and the preview appear at once.
+
+## Changelog
+
+- **0.0.7**: First release.

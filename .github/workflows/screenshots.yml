@@ -1,0 +1,39 @@
+name: Screenshots
+
+# Makes the screenshot baselines (e2e/__screenshots__) the way CI compares them: Google Chrome on
+# GitHub's Ubuntu runner, which a Mac can't reproduce. It changes nothing in the repo: it uploads
+# the images as an artifact, to download (`gh run download <run-id> -n screenshots -D
+# e2e/__screenshots__`) and commit.
+
+on:
+  # From the Actions tab, or `gh workflow run screenshots.yml --ref <branch>`.
+  workflow_dispatch:
+  # Or push a branch named screenshots/<anything>. GitHub only dispatches workflows that are on
+  # the default branch already; a push works before that, for tests that aren't on main yet.
+  push:
+    branches: ['screenshots/**']
+
+jobs:
+  screenshots:
+    # The same image as ci.yml, which compares against these baselines.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm exec playwright test e2e/screenshots.spec.ts --update-snapshots=all
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: screenshots
+          path: e2e/__screenshots__/
+          retention-days: 7

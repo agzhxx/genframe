@@ -1,0 +1,73 @@
+---
+title: Motion tokens
+description: The durations and easing curves that Genframe's animated components share, as CSS variables.
+---
+
+Every animated Genframe component takes its timing from five CSS variables. Change them in
+your stylesheet and every component follows; the docs' slow-motion toggle works the same way.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/motion-tokens
+```
+
+Or by URL, without setting up the namespace:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/motion-tokens.json
+```
+
+`shadcn add` writes the variables into your stylesheet's `:root`, next to shadcn's theme
+variables. Every animated component lists this item as a dependency, so it usually arrives on
+its own.
+
+## Usage
+
+In class names, through Tailwind's variable shorthand:
+
+```tsx
+<div className="transition-opacity duration-(--genframe-duration-fast) ease-(--genframe-ease-out)" />
+```
+
+In CSS:
+
+```css
+.panel {
+  transition: translate var(--genframe-duration-base) var(--genframe-ease-out);
+}
+```
+
+To retime the components, change the values in your `:root`. To slow down one part of a page,
+set the variables on a container: the elements inside inherit them.
+
+`--genframe-ease-spring` makes a plain CSS transition move like a spring: it overshoots its target
+by 2.8% and settles, within the transition's duration. It's a damped spring's curve written as
+CSS `linear()`, so no animation library is needed. The compare slider's handle uses it when it
+jumps to where you click. Browsers without `linear()` (older than Chrome 113, Firefox 112 or
+Safari 17.2) use the default `ease` instead.
+
+```tsx
+<div className="transition-transform duration-(--genframe-duration-base) ease-(--genframe-ease-spring)" />
+```
+
+The names start with `genframe-` so they can't collide with your own tokens or change Tailwind's
+`ease-out` utility. There's no reduced-motion media query in them: components switch to their
+reduced version through [useReducedMotion](./use-reduced-motion.mdx), which your app can
+override.
+
+## API
+
+| Variable                     | Value                            | For                                                       |
+| ---------------------------- | -------------------------------- | --------------------------------------------------------- |
+| `--genframe-duration-fast`   | `120ms`                          | Feedback: hover, press, a small change of state           |
+| `--genframe-duration-base`   | `220ms`                          | Things that move, open or appear                          |
+| `--genframe-duration-reveal` | `600ms`                          | A finished result coming into view, like DenoiseReveal's  |
+| `--genframe-ease-out`        | `cubic-bezier(0.2, 0.8, 0.2, 1)` | Movement that starts fast and settles gently              |
+| `--genframe-ease-spring`     | `linear(0, 0.007 1.3%, …, 1)`    | Movement to a new place that you asked for, like a click  |
+
+## Changelog
+
+- **0.0.5**: `--genframe-duration-reveal`, the 600 ms in which a result sharpens out of grain.
+- **0.0.3**: `--genframe-ease-spring`, a spring curve for transitions.
+- **0.0.2**: First release.

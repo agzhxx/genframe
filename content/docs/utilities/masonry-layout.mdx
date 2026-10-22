@@ -1,0 +1,92 @@
+---
+title: Masonry layout
+description: Masonry math. The lanes at a width, and each card placed by its aspect ratio, so a server and the browser place cards the same way at any width.
+---
+
+The arithmetic behind [MediaGrid](../components/media-grid.mdx): how many lanes a grid has at a
+width, which lane each card goes in, and where it sits. Pure functions, the same on the server and in
+the browser. Use them on their own to pick which card will be your page's largest image before
+anything renders, as Generation Feed does to preload its poster, or to build a grid of your own.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/masonry-layout
+```
+
+Or by URL, without setting up the namespace:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/masonry-layout.json
+```
+
+It lands in `lib/masonry-layout.ts` and has no dependencies.
+
+## Usage
+
+```ts
+import { cardAspect, cardBox, gridLayout, placeCards } from "@/lib/masonry-layout"
+
+const aspects = items.map((item) => cardAspect(item.width, item.height))
+const layout = gridLayout(1024) // { lanes: 4, gap: 8, laneWidth: 246 }
+const boxes = placeCards(aspects, layout.lanes).map((placement, index) =>
+  cardBox(placement, aspects[index], layout)
+)
+// boxes[i]: { left, top, width, height } in pixels, from the grid's top-left corner
+```
+
+### Placed by aspect ratio, not by pixels
+
+The usual masonry puts each card in the lane that's shortest in pixels. But a lane's height in
+pixels depends on the grid's width (cards are as wide as their lane), while the gaps don't: at one
+width the gaps tip the choice one way, at another the other. A server, which doesn't know the width,
+couldn't place cards the way the browser later would.
+
+So `placeCards` adds up each lane's aspect ratios (height ÷ width) instead, and puts each card in the
+lane with the smallest sum, ties going left. All lanes are equally wide, so that's the shortest lane,
+give or take a few gaps, and the answer depends only on the number of lanes. The server places cards
+once per lane count, and the browser gets exactly the same places at any width. Adding cards never
+moves the earlier ones.
+
+Very tall and very wide media are clamped by `cardAspect`, to between 1:2 and 2:1; the card crops
+them.
+
+## API
+
+### gridLayout(width, steps?)
+
+The lanes, gap and lane width of a grid `width` pixels wide: `{ lanes, gap, laneWidth }`. `steps` are
+`{ minWidth, lanes, gap }`, narrowest first; the last one the width reaches applies.
+
+### LANE_STEPS
+
+Generation Feed's steps: 2 lanes with a 4 px gap, 3 lanes (6 px) from 640 px, 4 lanes (8 px) from
+1,024 px, and 5 from 1,440 px. The grid's padding is its gap.
+
+### cardAspect(width, height)
+
+A card's height ÷ width, from its media's size, clamped to `MIN_ASPECT` (0.5) … `MAX_ASPECT` (2).
+
+### placeCards(aspects, lanes)
+
+Each card's `{ lane, above, count }`: its lane, the total aspect of the cards above it, and how many
+there are.
+
+### cardBox(placement, aspect, layout)
+
+A card's `{ left, top, width, height }` in pixels: `gap + lane × (laneWidth + gap)` from the left,
+and `above × laneWidth + (count + 1) × gap` from the top.
+
+### laneTotals(placements, aspects, lanes) and gridHeight(totals, layout)
+
+Each lane's total aspect and card count, and the grid's height: its tallest lane plus the bottom
+padding.
+
+### laneSizes(steps?)
+
+An `<img sizes>` value for a grid as wide as the window, a lane's share of it at each step:
+`"(max-width: 639px) 50vw, (max-width: 1023px) 33vw, (max-width: 1439px) 25vw, 20vw"`.
+
+## Changelog
+
+- **0.0.6**: First release, from Generation Feed.

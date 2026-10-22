@@ -1,0 +1,163 @@
+---
+title: MediaCard
+description: An image or a video as a link or a button. Its poster loads over a ThumbHash placeholder, and a clip previews from a shared pool of video elements while the pointer rests on it.
+---
+
+import {
+  mediaCardButtonKeyboard,
+  mediaCardKeyboard,
+  mediaCardPlayKeyboard,
+} from '@/content/keyboard/media-card';
+
+<Demo name="media-card" />
+
+An image, a clip, and a clip as a button with a caption, the way an editor's media bin lists them.
+Rest the pointer on a clip, or Tab to it, and its preview plays. Turn the posters off to see the
+placeholders, and previews off to get play buttons. [MediaGrid](./media-grid.mdx) lays cards out in
+a masonry grid; use a card on its own anywhere else.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/media-card
+```
+
+Or by URL:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/media-card.json
+```
+
+The URL form needs the namespace mapped too ([Add the registry](../index.mdx#add-the-registry)):
+the card brings [useVideoPool](../utilities/use-video-pool.mdx) with
+[createVideoPool](../utilities/video-pool.mdx), [useThumbHash](../utilities/use-thumbhash.mdx) with
+the `thumbhash` package, [useReducedMotion](../utilities/use-reduced-motion.mdx) and the
+[motion tokens](../utilities/motion-tokens.mdx), and shadcn finds them through `@genframe`. It lands
+in `components/ui/media-card/`.
+
+## Usage
+
+```tsx
+import { MediaCard, type GetMediaUrl, type MediaItem } from "@/components/ui/media-card/media-card"
+
+const item: MediaItem = {
+  id: "5blmqndubp",
+  kind: "video",
+  width: 1280,
+  height: 720,
+  thumbhash: "jwcKFII5Z2iIiXZweHdKgMAUCA==",
+  alt: "A glowing whale swims across the night sky. Video, 5 seconds.",
+}
+
+// Your URL builder: each poster in each width and format, and a clip's short preview.
+const getMediaUrl: GetMediaUrl = (item, request) => {
+  if (request.type === "preview") {
+    return item.kind === "video" ? `https://media.example.com/${item.id}/preview.mp4` : undefined
+  }
+  return `https://media.example.com/${item.id}/${request.width}.${request.format}`
+}
+
+export function Whale({ onOpen }: { onOpen: (item: MediaItem) => void }) {
+  return (
+    <MediaCard
+      item={item}
+      getMediaUrl={getMediaUrl}
+      href={`/media/${item.id}`}
+      onOpen={onOpen}
+      sizes="(max-width: 639px) 100vw, 320px"
+      className="w-80"
+    >
+      <span aria-hidden="true" className="absolute top-2 left-2 rounded-sm bg-background/70 px-1.5 text-xs">
+        Video · 5s
+      </span>
+    </MediaCard>
+  )
+}
+```
+
+Previews need a [VideoPoolProvider](../utilities/use-video-pool.mdx) somewhere above the card;
+without one, a clip shows its poster.
+
+### Posters
+
+The card asks your `getMediaUrl` for a poster in every format of `formats` (AVIF and WebP unless you
+say otherwise) at every width of `widths` up to the item's own: a `<source>` for each format but the
+last, which is the `<img>`'s. Return `undefined` for a file you don't have, and the card leaves it
+out. Set `sizes` to the width the card is shown at, so the browser picks the right file.
+
+`priority` says when the poster loads: `"lazy"` (when it nears the screen), `"eager"` (at once, for
+the first screen) or `"high"` (first of all, for your page's largest image). A poster that fails to
+load keeps its placeholder and offers a retry button.
+
+### Placeholders
+
+Until the poster has loaded, the card shows its item's ThumbHash: `"blur"`, a tiny image decoded in
+the browser, over which a lazy poster fades in; or `"color"`, its average color, a few bytes, for
+server-rendered HTML, where a poster shows as it loads (a fading one would stay hidden until
+JavaScript ran). Without a ThumbHash, or with `"none"`, it's shadcn's `muted` color.
+
+### Links and buttons
+
+With `href`, the card is a link, and a plain click calls `onOpen` instead of following it: open
+your own detail view. Ctrl, Cmd and Shift clicks and middle clicks still open the link. Without
+`href`, it's a button that calls `onOpen`, and `description`, `busy` and attributes like
+`onPointerDown` (to start a drag) suit it: they go on the button. `caption` puts text under the
+media, inside the link or button, where it names the card.
+
+### Shape
+
+The card takes its item's shape, or `ratio` (width ÷ height), cropping the media to it, and the
+width its container gives it. `fill` makes it fill its container instead, as MediaGrid's cards do.
+
+## Props
+
+<AutoTypeTable path="registry/ui/media-card/media-card.tsx" name="MediaCardProps" />
+
+Its other attributes, like `aria-*`, `data-*`, `style` and event handlers, go on its link or button;
+`className` goes on its outer box.
+
+<AutoTypeTable path="registry/ui/media-card/media-card.tsx" name="MediaItem" />
+
+## Keyboard
+
+On a card with a link:
+
+<KeyboardTable keyboard={mediaCardKeyboard} />
+
+On a card without one, which is a button:
+
+<KeyboardTable keyboard={mediaCardButtonKeyboard} />
+
+On a clip's play button, when its preview can't start by itself:
+
+<KeyboardTable keyboard={mediaCardPlayKeyboard} />
+
+A clip previews while its card has keyboard focus, as it does under a resting pointer; focus from a
+click doesn't start it.
+
+## Accessibility
+
+- The card is a link, or a button without `href`, named by its item's `alt` and then its `caption`.
+  Leave `alt` empty when the caption names the card. Its images are decoration, with empty alt text.
+- Badges and other things you draw over the media are part of the link, so hide from screen readers
+  what `alt` already says (`aria-hidden="true"`).
+- `description` is the card's `aria-describedby`; `busy` is its `aria-busy`.
+- A clip's play button is a toggle, "Play preview" or "Pause preview" with `aria-pressed`, beside
+  the link rather than inside it: a button can't sit inside a link or another button.
+- The retry button for a poster that didn't load is "Retry loading image".
+- The outline on hover and keyboard focus is shadcn's `ring` color, 2 px, 2 px off the card.
+
+## Motion
+
+- A lazy poster fades in over its blurred ThumbHash once it has loaded, over
+  `--genframe-duration-base` with `--genframe-ease-out`; the other placeholders and priorities show
+  the poster as it loads.
+- A clip's preview stays transparent over the poster until its first frame is painted, then fades
+  in over `--genframe-duration-fast`: the poster is that first frame, so nothing jumps.
+- With reduced motion, nothing plays by itself: hover, focus and `previewSince` start nothing, and
+  clips get a play button. A preview you start appears without a fade, and posters fade in over
+  `--genframe-duration-fast`.
+
+## Changelog
+
+- **0.0.6**: First release.

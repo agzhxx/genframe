@@ -1,0 +1,37 @@
+# dependencies
+/node_modules
+
+# build output
+/.next/
+/out/
+/build
+*.tsbuildinfo
+next-env.d.ts
+.source
+
+# the registry's JSON, built from registry.json by `pnpm registry:build`
+/public/r/
+# the size check's results, which the docs' size badges read (`pnpm sizes`)
+/generated/
+
+# tests
+/coverage/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# env files: secrets stay local
+.env*
+
+# editors and OS
+.DS_Store
+*.pem
+*.log
+
+# Lighthouse CI's runs and reports (`pnpm lighthouse`)
+/.lighthouseci/
+
+# the Studio's recording (scripts/record-studio.ts): the MP4 for posts stays out of git; the
+# README's WebP is copied to docs/media/
+/demo-clips/

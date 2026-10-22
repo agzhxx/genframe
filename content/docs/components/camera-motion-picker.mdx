@@ -1,0 +1,125 @@
+---
+title: CameraMotionPicker
+description: Pick a camera move from tiles that show it. A tile loops a short clip of its move while the pointer rests on it, while it has keyboard focus or after a tap, borrowing its video from the shared pool.
+---
+
+import {
+  cameraMotionPickerKeyboard,
+  cameraMotionPickerPlayKeyboard,
+} from '@/content/keyboard/camera-motion-picker';
+
+<Demo name="camera-motion-picker" />
+
+Generation Feed's red car, set in motion by each of eight camera moves, and three more scenes with
+fewer. Rest the pointer on a tile, or Tab into the group and use the arrows, and its clip plays. The
+pool has two videos here: watch the counts as you cross the tiles. Turn on Reduced motion to get
+play buttons instead.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/camera-motion-picker
+```
+
+Or by URL:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/camera-motion-picker.json
+```
+
+The URL form needs the namespace mapped too ([Add the registry](../index.mdx#add-the-registry)):
+the picker brings [useVideoPool](../utilities/use-video-pool.mdx) with
+[createVideoPool](../utilities/video-pool.mdx), [useReducedMotion](../utilities/use-reduced-motion.mdx)
+and the [motion tokens](../utilities/motion-tokens.mdx), and shadcn finds them through `@genframe`.
+It lands in `components/ui/camera-motion-picker/`.
+
+## Usage
+
+```tsx
+import { useState } from "react"
+import { CameraMotionPicker, type CameraMotionOption } from "@/components/ui/camera-motion-picker/camera-motion-picker"
+
+const moves: CameraMotionOption[] = [
+  {
+    id: "dolly-in",
+    label: "Dolly in",
+    description: "The camera moves in toward the subject.",
+    previewSrc: "https://media.example.com/moves/dolly-in.mp4",
+    poster: "https://media.example.com/moves/dolly-in.webp",
+  },
+  {
+    id: "orbit",
+    label: "Orbit",
+    description: "The camera circles around the subject.",
+    previewSrc: "https://media.example.com/moves/orbit.mp4",
+    poster: "https://media.example.com/moves/orbit.webp",
+  },
+]
+
+export function CameraField() {
+  const [move, setMove] = useState("dolly-in")
+  return <CameraMotionPicker options={moves} value={move} onValueChange={setMove} name="camera" />
+}
+```
+
+No move is picked until the user picks one, unless you give `value` or `defaultValue`. Inside a
+form, `name` sends the picked move's `id`.
+
+### Clips and the pool
+
+A tile plays its `previewSrc`, muted and looped, over its `poster`, and shows the clip only once
+its first frame is painted, so the poster should be that frame. Tiles are 16:9; other shapes are
+cropped to fit. Keep clips short and small: a few seconds at about 480 px tall is plenty for a tile.
+
+Tiles borrow their videos from the page's [video pool](../utilities/use-video-pool.mdx), the one
+MediaCard and MediaGrid use: put a `VideoPoolProvider` above them, and however many tiles the
+pointer crosses, no more videos than the pool holds play or stay loaded at once; the least recently
+used one is taken back first. Without a provider, the picker makes a pool of its own.
+
+## Props
+
+<AutoTypeTable path="registry/ui/camera-motion-picker/camera-motion-picker.tsx" name="CameraMotionPickerProps" />
+
+Each of its `options`:
+
+<AutoTypeTable path="registry/ui/camera-motion-picker/camera-motion-picker.tsx" name="CameraMotionOption" />
+
+## Keyboard
+
+On the tiles:
+
+<KeyboardTable keyboard={cameraMotionPickerKeyboard} />
+
+On a tile's play button:
+
+<KeyboardTable keyboard={cameraMotionPickerPlayKeyboard} />
+
+A tile's clip plays while it has keyboard focus, as it does under a resting pointer, so arrowing
+through the tiles plays each move in turn. Focus from a click doesn't start it.
+
+## Accessibility
+
+- The tiles are native radio buttons in a `radiogroup` named "Camera motion" (set `aria-label` or
+  `aria-labelledby`), so the browser gives them the WAI-ARIA
+  [radio group pattern](https://www.w3.org/WAI/ARIA/apg/patterns/radio/) and the arrow keys.
+- Each radio is named by its move's `label` and described by its `description`, which is shown
+  under the name too, for everyone who can't see or play the clip.
+- The picked tile has a check mark as well as its color. The poster and the clip are decoration,
+  hidden from screen readers.
+- With reduced motion, or when the browser refuses to play (iOS Low Power Mode), each tile has a
+  play button, "Play preview of Orbit", a toggle with `aria-pressed`. It sits beside the radio, not
+  inside its label, where a button can't be. Only the picked tile's is in the tab order, right
+  after the group; the others take clicks and taps, and screen readers reach them all.
+- Focus shows as a ring around the tile.
+
+## Motion
+
+- A tile's clip plays after the pointer has rested on it for 100 ms, or keyboard focus has, so
+  sweeping across tiles doesn't start each one; on a touch screen, after a tap. It fades in over its
+  poster once its first frame is painted, over `--genframe-duration-fast`.
+- With reduced motion, nothing plays by itself: each tile shows its poster, its name and a play
+  button, and a clip you start appears without the fade.
+
+## Changelog
+
+- **0.0.7**: First release.

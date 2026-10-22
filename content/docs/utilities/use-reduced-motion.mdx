@@ -1,0 +1,103 @@
+---
+title: useReducedMotion
+description: Tells components whether to reduce motion, from the user's system setting or your app's own.
+---
+
+<Demo name="use-reduced-motion" />
+
+Every animated Genframe component reads this hook to choose between its full and its reduced
+version. On its own it follows the operating system's setting (`prefers-reduced-motion`). Wrap
+your app, or part of it, in `ReducedMotionProvider` to decide yourself: for example from a
+"Reduce motion" switch in your app's settings, as the toolbar above does for its demo.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/use-reduced-motion
+```
+
+Or by URL, without setting up the namespace:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/use-reduced-motion.json
+```
+
+It lands in `hooks/use-reduced-motion.ts` (wherever your `hooks` alias points) and has no
+dependencies.
+
+## Usage
+
+Read the hook where something animates, and give the reduced version its own styles. Here a
+sheet slides in with full motion and fades in place with reduced motion:
+
+```tsx
+import { useReducedMotion } from "@/hooks/use-reduced-motion"
+import { cn } from "@/lib/utils"
+
+export function Sheet({ open }: { open: boolean }) {
+  const reduced = useReducedMotion()
+
+  return (
+    <div
+      className={cn(
+        "duration-(--genframe-duration-base) ease-(--genframe-ease-out)",
+        reduced ? "transition-opacity" : "transition-transform",
+        !open && (reduced ? "opacity-0" : "translate-y-full")
+      )}
+    />
+  )
+}
+```
+
+To let your app decide, put the provider near the root and pass it your setting:
+
+```tsx
+import type { ReactNode } from "react"
+import { ReducedMotionProvider } from "@/hooks/use-reduced-motion"
+
+export function Providers({
+  reduceMotion,
+  children,
+}: {
+  reduceMotion: boolean // your app's own setting
+  children: ReactNode
+}) {
+  return (
+    <ReducedMotionProvider reducedMotion={reduceMotion ? "always" : "user"}>
+      {children}
+    </ReducedMotionProvider>
+  )
+}
+```
+
+Why not Tailwind's `motion-reduce:` variant? It reads the media query directly, so nothing can
+override it for one part of a page. Genframe's components read this hook instead.
+
+## API
+
+### useReducedMotion()
+
+Returns `true` when motion should be reduced: what the nearest `ReducedMotionProvider` says, or
+the system setting when there's no provider or it says `"user"`. The component re-renders when
+either changes, so it can switch versions while it's on screen. On the server it returns `false`,
+and so it does where there's no `matchMedia`, as in jsdom, where your app's tests run.
+
+### ReducedMotionProvider
+
+<AutoTypeTable path="registry/hooks/use-reduced-motion.ts" name="ReducedMotionProviderProps" />
+
+Providers can nest: the nearest one wins, and a nested `"user"` goes back to the system setting.
+Under `"always"` or `"never"`, components don't listen to the system setting at all.
+
+### ReducedMotionSetting
+
+```ts
+type ReducedMotionSetting = "user" | "always" | "never"
+```
+
+## Changelog
+
+- **0.0.6**: Works without `matchMedia`, as in jsdom: motion isn't reduced there. Found when
+  Storyboard Timeline's tests rendered MediaCard.
+- **0.0.2**: `ReducedMotionProvider`, so an app can override the system setting.
+- **0.0.1**: First release.

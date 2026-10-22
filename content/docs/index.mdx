@@ -1,0 +1,79 @@
+---
+title: Getting started
+description: Add Genframe's registry to your app and install your first item.
+---
+
+Genframe is a set of React components for AI image and video tools. It isn't an npm package:
+like shadcn/ui, each item is copied into your project, where you can read and change it.
+
+## Requirements
+
+- React 19 and Tailwind CSS v4.
+- A project with shadcn set up (`npx shadcn@latest init`). Items are written for shadcn's Radix
+  and Base UI styles (`radix-*` and `base-*` in `components.json`); the React Aria styles
+  (`aria-*`) aren't supported yet.
+
+## Add the registry
+
+Map the `@genframe` namespace once per project:
+
+```bash
+npx shadcn@latest registry add @genframe=https://agzhxx.github.io/genframe/r/{name}.json
+```
+
+## Install an item
+
+```bash
+npx shadcn@latest add @genframe/compare-slider
+```
+
+The slider lands in `components/ui/compare-slider/` (wherever your `ui` alias points) and brings
+the Genframe items it needs with it: `use-reduced-motion` and `motion-tokens`.
+
+Items also install by URL:
+
+```bash
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/use-reduced-motion.json
+```
+
+Without the namespace, that works only for items with no Genframe dependencies, like
+`use-reduced-motion`, `estimate-cost`, `generation-queue-reducer`, `use-thumbhash`, `video-pool`,
+`masonry-layout`, `timecode` and `motion-tokens`. The components need the namespace mapped first,
+since shadcn finds their Genframe dependencies through it.
+
+## Items
+
+| Item                                                                   | Type      | What it does                                                                                     |
+| ---------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------ |
+| [`compare-slider`](./components/compare-slider.mdx)                    | Component | A before/after slider for two images or two videos; two videos stay in step.                     |
+| [`aspect-ratio-picker`](./components/aspect-ratio-picker.mdx)          | Component | Pick an aspect ratio from frames drawn in their shapes; disabled ratios say why.                 |
+| [`model-picker`](./components/model-picker.mdx)                        | Component | A searchable list of models with their prices, and what a run with your settings would cost.     |
+| [`prompt-composer`](./components/prompt-composer.mdx)                  | Component | A prompt box for generation: @-mentions of reference images, preset chips, a toolbar and submit. |
+| [`generation-queue`](./components/generation-queue.mdx)                | Component | Generation jobs as cards in a list, with their progress and results, announced as they change.   |
+| [`generation-card`](./components/generation-card.mdx)                  | Component | One job in each of its states, with its buttons; its media keeps the shape you asked for.        |
+| [`denoise-reveal`](./components/denoise-reveal.mdx)                    | Component | An image that sharpens out of grain and blur once it has loaded.                                 |
+| [`media-grid`](./components/media-grid.mdx)                            | Component | A virtualized masonry grid of images and clips whose first screen is placed before any script.   |
+| [`media-card`](./components/media-card.mdx)                            | Component | An image or clip as a link or button: its poster over a ThumbHash, and a preview on hover.       |
+| [`video-scrubber`](./components/video-scrubber.mdx)                    | Component | A scrub bar for any video: buffered ranges, a thumbnail preview with its timecode, frame steps.  |
+| [`camera-motion-picker`](./components/camera-motion-picker.mdx)        | Component | Pick a camera move from tiles that loop a clip of it, from the shared pool of videos.            |
+| [`use-generation-queue`](./utilities/use-generation-queue.mdx)         | Hook      | Runs the queue's jobs on your driver, a few at a time.                                           |
+| [`use-thumbhash`](./utilities/use-thumbhash.mdx)                       | Hook      | A ThumbHash as a placeholder image, decoded on the server too.                                   |
+| [`use-video-pool`](./utilities/use-video-pool.mdx)                     | Hook      | One pool of videos for a page's previews, and the hook a card borrows one with.                  |
+| [`use-scrubber`](./utilities/use-scrubber.mdx)                         | Hook      | A scrub bar's logic for any player, and the wiring for a `<video>`.                              |
+| [`use-reduced-motion`](./utilities/use-reduced-motion.mdx)             | Hook      | Tells components whether to reduce motion: the system setting, or your app's own.                |
+| [`generation-queue-reducer`](./utilities/generation-queue-reducer.mdx) | Lib       | The queue's state as a pure reducer that ignores late events, with its selectors.                |
+| [`simulated-generator`](./utilities/simulated-generator.mdx)           | Lib       | A pretend generator for demos and tests, the same way every time.                                |
+| [`estimate-cost`](./utilities/estimate-cost.mdx)                       | Lib       | What a generation will cost, from a model's price and the run's settings, exactly.               |
+| [`video-pool`](./utilities/video-pool.mdx)                             | Lib       | A fixed set of videos that cards borrow for previews: never more, least recently used first.     |
+| [`masonry-layout`](./utilities/masonry-layout.mdx)                     | Lib       | Masonry math that places cards by aspect ratio, the same on the server and in the browser.       |
+| [`timecode`](./utilities/timecode.mdx)                                 | Lib       | Clock times, SMPTE timecode and frames at any rate, and a time in words.                         |
+| [`motion-tokens`](./utilities/motion-tokens.mdx)                       | CSS       | The durations and easing curves that the animated components share, as CSS variables.            |
+
+Each item brings the items it needs with it.
+
+## Sizes
+
+Each item's page shows its size: the item's own code plus the npm packages it brings, minified
+and gzipped, the way your app's bundler would ship it. React and the shadcn parts it builds on
+aren't counted, since your app has them already; neither are other Genframe items, which have
+sizes of their own. Every item has a budget, and CI fails when one grows past it.

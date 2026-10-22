@@ -1,0 +1,31 @@
+---
+title: Components
+description: What every component page covers, and which components come first.
+---
+
+So far: [CompareSlider](./compare-slider.mdx), a before/after slider for two images or two
+videos; [AspectRatioPicker](./aspect-ratio-picker.mdx); [ModelPicker](./model-picker.mdx), with an
+estimate of what each model would cost; [PromptComposer](./prompt-composer.mdx), with @-mentions
+of reference images; [GenerationQueue](./generation-queue.mdx), with its
+[cards](./generation-card.mdx) and the [denoise reveal](./denoise-reveal.mdx) of their results; and
+[MediaGrid](./media-grid.mdx), a masonry grid of [media cards](./media-card.mdx) whose clips preview
+from a shared pool of videos; [VideoScrubber](./video-scrubber.mdx), a scrub bar with thumbnail
+previews and frame steps; and [CameraMotionPicker](./camera-motion-picker.mdx), whose tiles play
+their camera moves from the same pool.
+
+## Every component page has
+
+- A **playground** with the component running live, its controls, and two toggles. **Slow
+  motion (0.25×)** plays every animation at a quarter of its speed; **Reduced motion** switches
+  the component to its reduced version.
+- **Installation**: the command, with the namespace or by URL.
+- **Usage**: an example to start from.
+- **Props**: read from the component's TypeScript types and comments.
+- **Keyboard**: every key it handles. The table and the component's tests read the same file,
+  so what's published is what's tested.
+- **Accessibility**: its WAI-ARIA pattern, its labels and what screen readers announce.
+- **Motion**: what moves and why, and what the reduced version does instead.
+- **Changelog**: the releases that changed it.
+
+The size next to each title is the component's own code plus the npm packages it brings,
+minified and gzipped ([Sizes](../index.mdx#sizes)).

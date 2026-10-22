@@ -1,0 +1,78 @@
+---
+title: useThumbHash
+description: A ThumbHash as a placeholder image. A tiny PNG data URL to show while the real image loads, decoded on the server too.
+---
+
+A [ThumbHash](https://evanw.github.io/thumbhash/) is a picture of an image in about 25 bytes:
+its colors, its rough shapes and its aspect ratio. Generation Feed stores one for every image it
+serves, in base64. `useThumbHash` turns one into a tiny PNG, as a data URL, which the browser
+blurs as it scales it up: a placeholder in the image's own colors while the image loads.
+[GenerationCard](../components/generation-card.mdx) shows a result's over its
+[DenoiseReveal](../components/denoise-reveal.mdx), and [MediaCard](../components/media-card.mdx)
+under its poster.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/use-thumbhash
+```
+
+Or by URL, without setting up the namespace:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/use-thumbhash.json
+```
+
+It lands in `hooks/use-thumbhash.ts` and brings the [`thumbhash`](https://github.com/evanw/thumbhash)
+package (MIT), which `shadcn add` installs: 1.3 KB of it, gzipped, the half that decodes.
+
+## Usage
+
+```tsx
+import { useThumbHash } from "@/hooks/use-thumbhash"
+
+export function Poster({ src, alt, thumbhash }: { src: string; alt: string; thumbhash?: string }) {
+  const placeholder = useThumbHash(thumbhash)
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="bg-cover"
+      style={placeholder ? { backgroundImage: `url("${placeholder}")` } : undefined}
+    />
+  )
+}
+```
+
+The image covers its placeholder as it loads. Or pass it to DenoiseReveal's `placeholder`, under
+the grain. The hash decodes during rendering, so the placeholder is in the server's HTML too, and
+once while it's among the last 200 decoded: a grid mounts its cards again as they scroll back into
+view, and a decode costs about 0.2 ms. A hash that doesn't decode gives `undefined`, not an error.
+
+For server-rendered HTML, where 4 KB of data URL per image adds up, `thumbHashColor(hash)` gives
+the image's average color as CSS instead, a few bytes:
+
+```tsx
+<div style={{ backgroundColor: thumbHashColor(item.thumbhash) }} />
+```
+
+To make ThumbHashes, run `rgbaToThumbHash` from the same package on a small copy of each image
+(100 px at most), wherever your images are processed, and store the bytes in base64.
+
+## API
+
+### useThumbHash(hash)
+
+Returns the placeholder as a `data:image/png;base64,…` URL, at most 32 pixels on its longer side,
+in the image's aspect ratio; `undefined` for no hash, or one that doesn't decode.
+
+### thumbHashColor(hash)
+
+Returns the average color as CSS, like `rgb(39 52 71)`; `undefined` for a hash that doesn't decode.
+A plain function: call it anywhere, on the server too.
+
+## Changelog
+
+- **0.0.6**: `thumbHashColor`, an image's average color; decoded placeholders are kept for the last
+  200 hashes.
+- **0.0.5**: First release.

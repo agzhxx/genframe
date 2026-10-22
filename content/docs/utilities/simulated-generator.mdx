@@ -1,0 +1,82 @@
+---
+title: createSimulatedGenerator
+description: A pretend generator for demos and tests. A driver for useGenerationQueue that takes a while, reports its progress and sometimes fails, the same way every time.
+---
+
+A driver for [useGenerationQueue](./use-generation-queue.mdx) that calls no API. Each run takes a
+while, reports its progress twice a second, then makes the result you give it, or fails now and
+then. Its randomness is seeded by the job and the attempt, so the same jobs always run the same
+way: a demo looks the same on every visit, and a test with fake timers knows what will happen.
+[GenerationQueue](../components/generation-queue.mdx)'s playground runs on it.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/simulated-generator
+```
+
+Or by URL:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/simulated-generator.json
+```
+
+The URL form needs the namespace mapped too ([Add the registry](../index.mdx#add-the-registry)):
+it brings [useGenerationQueue](./use-generation-queue.mdx) and the
+[queue's reducer](./generation-queue-reducer.mdx), and shadcn finds them through `@genframe`. It
+lands in `lib/simulated-generator.ts` and needs no npm packages.
+
+## Usage
+
+```tsx
+import { useGenerationQueue } from "@/hooks/use-generation-queue"
+import { createSimulatedGenerator } from "@/lib/simulated-generator"
+
+// Once, outside the component (or with useMemo when its options change).
+const driver = createSimulatedGenerator({
+  result: (job) => ({ src: `/samples/${job.ratio.replace(":", "x")}.webp`, width: 1024, height: 576 }),
+  failureRate: 0.2,
+})
+
+export function Demo() {
+  const queue = useGenerationQueue({ driver })
+  // ...
+}
+```
+
+`result` makes what a successful run returns, for its job: images you have already. Each run
+takes a time drawn from its kind's `durations`, and its estimate, which the queue shows before
+there's progress, is the middle of them. With `unknownProgress`, runs report no progress, only
+their result, as some models do. A failing run fails somewhere between a fifth and four fifths of
+the way through, with "Simulated failure".
+
+The same seed, job and attempt always draw the same numbers; a retry is a new attempt and draws new
+ones, so a job that failed may succeed the next time. That makes it a driver for tests too:
+
+```ts
+import { act, renderHook } from "@testing-library/react"
+import { vi } from "vitest"
+
+vi.useFakeTimers()
+const driver = createSimulatedGenerator({ result: () => sample, durations: { image: [2000, 2000] } })
+const { result: queue } = renderHook(() => useGenerationQueue({ driver }))
+act(() => {
+  queue.current.submit({ kind: "image", prompt: "A red car", ratio: "16:9" })
+})
+await act(() => vi.advanceTimersByTimeAsync(2000))
+// queue.current.jobs[0].status is "succeeded"
+```
+
+It stops when the run's signal aborts: no more reports, no timers left.
+
+## API
+
+### createSimulatedGenerator(options)
+
+Returns a `GenerationDriver` for useGenerationQueue.
+
+<AutoTypeTable path="registry/lib/simulated-generator.ts" name="SimulatedGeneratorOptions" />
+
+## Changelog
+
+- **0.0.5**: First release.

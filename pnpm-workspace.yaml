@@ -1,0 +1,5 @@
+# Neither needs its install script here: esbuild's only checks its binary, and unrs-resolver's
+# only matters on platforms without a prebuilt one. Same as the Feed.
+ignoredBuiltDependencies:
+  - esbuild
+  - unrs-resolver

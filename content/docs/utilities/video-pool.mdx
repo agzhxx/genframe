@@ -1,0 +1,100 @@
+---
+title: createVideoPool
+description: A fixed set of video elements that every card shares for its preview. It never makes more than its size, and takes back the least recently used one when it needs another.
+---
+
+A grid of clips that each had their own `<video>` would hold a decoder, a buffer and a download per
+clip on screen, and a phone runs out of them fast. A pool makes a few videos once and lends them
+out: a card borrows one while its preview plays, and hands it back after. However many cards there
+are and however fast the pointer moves, at most `size` videos exist. It started as
+[Generation Feed](https://generation-feed.vercel.app)'s, written from the rules below with their
+tests first; [MediaCard](../components/media-card.mdx) and [MediaGrid](../components/media-grid.mdx)
+use it through [useVideoPool](./use-video-pool.mdx).
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/video-pool
+```
+
+Or by URL, without setting up the namespace:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/video-pool.json
+```
+
+It lands in `lib/video-pool.ts` and has no dependencies. In React, use
+[useVideoPool](./use-video-pool.mdx)'s provider rather than calling it yourself.
+
+## Usage
+
+```ts
+import { createVideoPool } from "@/lib/video-pool"
+
+const pool = createVideoPool() // 6 videos on a desktop, 2 on a phone
+
+// The pointer rests on a card: borrow a video into its slot, and play its clip.
+pool.acquire("card-7", "https://media.example.com/7/preview.mp4", slot, {
+  onFirstFrame: () => slot.classList.remove("opacity-0"), // the swap from the poster
+  onPlayRejected: () => showPlayButton(), // e.g. iOS Low Power Mode
+})
+
+// The pointer leaves: the video pauses and stays warm in the card.
+pool.release("card-7")
+```
+
+### The rules
+
+- **Never more than `size`.** The videos are made when the pool is, muted, inline, looping, with
+  nothing preloaded and no picture-in-picture, and no others ever are.
+- **Warm cards come back at once.** A released video pauses but keeps its clip and stays in its
+  card, so hovering that card again needs no download and no new decoder.
+- **Then a free one.** A card without a video of its own gets one that holds no clip yet.
+- **Then the least recently used.** When every video holds a clip, the pool takes the one used
+  longest ago, preferring one that's idle over one that's playing (and tells a playing card it lost
+  its video, with `onLost`). "Used" is a counter that goes up with every acquire and release, so the
+  order is exact, and tests are too.
+- **Stealing frees the decoder first.** The video pauses, loses its source and `load()`s empty, which
+  tells the browser to release its decoder and buffers, before it gets the new clip.
+- **The swap waits for a frame.** `onFirstFrame` fires when the first frame is painted
+  (`requestVideoFrameCallback`; `loadeddata` without it), so a card shows the video only then, over
+  its poster, and never flashes black.
+- **A hidden tab pauses everything,** and the videos in use play again when it's back.
+- **Safari's first click.** With Low Power Mode or auto-play turned off, Safari plays a video only
+  inside a click, and remembers per element. So on the first click, key press or tap, the pool
+  starts and pauses every video not in use, once: from then on, hovers can play them.
+
+## API
+
+### createVideoPool(size?, doc?)
+
+Makes `size` videos (`defaultPoolSize()` unless you say) in `doc` (the page's document). Call it in
+the browser.
+
+### pool.acquire(cardId, src, slot, options?)
+
+Moves a video into `slot`, gives it `src` and plays it; returns the video. `options`:
+`onFirstFrame()`, `onPlayRejected(error)` (an interrupted play, an `AbortError`, isn't reported) and
+`onLost()`.
+
+### pool.release(cardId)
+
+Pauses the card's video, which stays warm until another card needs it.
+
+### pool.liveCount(), pool.steals(), pool.size
+
+How many videos hold a clip, playing or warm (never more than `size`); how many times one was taken
+from a card for another; and how many there are.
+
+### pool.dispose()
+
+Empties every video, takes them out of the page and stops listening.
+
+### defaultPoolSize(device?)
+
+2 on touch screens (`(pointer: coarse)`) and on devices with 4 GB of memory or less
+(`navigator.deviceMemory`), 6 otherwise.
+
+## Changelog
+
+- **0.0.6**: First release, from Generation Feed.

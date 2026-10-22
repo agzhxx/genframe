@@ -1,0 +1,127 @@
+---
+title: CompareSlider
+description: A before/after slider for two images or two videos. Drag the divider, click where it should go or use the keys; two videos stay in step.
+---
+
+import { compareSliderKeyboard } from '@/content/keyboard/compare-slider';
+
+<Demo name="compare-slider" />
+
+Lay a result over its draft, or night over day, and let people slide between them. The after
+layer is drawn over the before layer and clipped at the divider, so neither ever changes size.
+Put a video in each layer and they play, pause and seek together.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/compare-slider
+```
+
+Or by URL:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/compare-slider.json
+```
+
+The URL form needs the namespace mapped too ([Add the registry](../index.mdx#add-the-registry)):
+the slider brings two Genframe items with it, [useReducedMotion](../utilities/use-reduced-motion.mdx)
+and the [motion tokens](../utilities/motion-tokens.mdx), and shadcn finds them through
+`@genframe`.
+
+It lands in `components/ui/compare-slider/`: the component, its arithmetic (`slider-math.ts`) and
+the video sync (`video-sync.ts`). It needs no npm packages.
+
+## Usage
+
+```tsx
+import { CompareSlider } from "@/components/ui/compare-slider/compare-slider"
+
+export function Upscale({ draft, final }: { draft: string; final: string }) {
+  return (
+    <CompareSlider
+      className="aspect-video w-full rounded-xl"
+      labels={{ before: "Draft", after: "Final" }}
+      before={<img src={draft} alt="Draft" className="size-full object-cover" />}
+      after={<img src={final} alt="Final" className="size-full object-cover" />}
+    />
+  )
+}
+```
+
+The layers fill the slider: give it a size, here an aspect ratio, and let the media cover it. The
+two images should have the same aspect ratio and framing, or they won't line up.
+
+The position is how much of `after` shows, from 0 to 100. It grows from the left edge, like the
+filled part of a range input (from the bottom edge when `orientation` is `"vertical"`). To keep
+it in your own state:
+
+```tsx
+const [position, setPosition] = useState(50)
+
+return (
+  <CompareSlider position={position} onPositionChange={setPosition} before={draft} after={final} />
+)
+```
+
+### Two videos
+
+Put a `<video>` in each layer, and the slider keeps them in step. The `before` video is the clock:
+while they play, the `after` video plays a little faster or slower until it's within a frame of
+the clock, and jumps to it when they're a quarter of a second or more apart; paused, it shows the
+clock's exact frame. Play, pause or seek either video, from your own controls, and the slider does
+the same to the other. Set the playback rate on the `before` video.
+
+```tsx
+<CompareSlider
+  className="aspect-video w-full"
+  before={<video src={draft} muted loop playsInline className="size-full object-cover" />}
+  after={<video src={final} muted loop playsInline className="size-full object-cover" />}
+/>
+```
+
+Both videos play, so let only one of them have sound. A player that renders a native `<video>`
+works the same way; one that keeps its video inside a shadow root isn't found.
+
+## Props
+
+<AutoTypeTable path="registry/ui/compare-slider/compare-slider.tsx" name="CompareSliderProps" />
+
+## Keyboard
+
+<KeyboardTable keyboard={compareSliderKeyboard} />
+
+The keys work in both orientations. With a pointer, drag the handle or anywhere on the slider; a
+click (a tap on a touch screen) moves the divider there, and a double-click puts it back at 50%.
+On a touch screen, swipes along the slider move the divider and swipes across it scroll the page.
+
+## Accessibility
+
+- The handle follows the WAI-ARIA [slider pattern](https://www.w3.org/WAI/ARIA/apg/patterns/slider/):
+  `role="slider"`, `aria-valuemin` 0, `aria-valuemax` 100, `aria-valuenow` (how much of `after`
+  shows) and `aria-orientation`.
+- `aria-valuetext` reads the position with the after layer's label, "60% Final", or "60%" without
+  labels.
+- Its name is the two labels, "Draft and Final", or "Before and after" without them. Set
+  `aria-label` or `aria-labelledby` to say what's being compared.
+- The labels drawn on the layers are hidden from screen readers, which hear them in the name and
+  the value. Give the images alt text that says which is which.
+- The handle is in the tab order and shows a focus ring. A click anywhere on the slider moves focus
+  to the handle, so the keys work from there.
+- The whole slider is the handle's drag area: keep links, buttons and video controls outside the
+  layers.
+
+## Motion
+
+- The divider springs to where you click: its `transform` and the after layer's `clip-path` move
+  together, over `--genframe-duration-base` with
+  [`--genframe-ease-spring`](../utilities/motion-tokens.mdx), which overshoots by 2.8% and settles.
+  Keyboard steps spring the same way.
+- While you drag, nothing animates: the divider stays under the pointer.
+- With reduced motion, the divider goes straight to its new place.
+- `clip-path` is the one animated property here that isn't a transform. The after layer is clipped,
+  never resized, so moving the divider doesn't lay the page out again; the browser repaints the
+  slider and nothing else.
+
+## Changelog
+
+- **0.0.3**: First release.

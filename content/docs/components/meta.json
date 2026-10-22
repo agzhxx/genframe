@@ -1,0 +1,19 @@
+{
+  "title": "Components",
+  "defaultOpen": true,
+  "pages": [
+    "index",
+    "compare-slider",
+    "aspect-ratio-picker",
+    "model-picker",
+    "prompt-composer",
+    "generation-queue",
+    "generation-card",
+    "denoise-reveal",
+    "media-grid",
+    "media-card",
+    "video-scrubber",
+    "camera-motion-picker",
+    "..."
+  ]
+}

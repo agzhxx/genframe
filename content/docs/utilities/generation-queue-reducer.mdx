@@ -1,0 +1,143 @@
+---
+title: generationQueueReducer
+description: The generation queue's state as a pure reducer that ignores late events, with selectors for a queued job's place in line and the time a job has left.
+---
+
+The queue's whole state is a list of jobs, newest first, and eight events move a job through its
+states. [useGenerationQueue](./use-generation-queue.mdx) runs it on a driver; use the reducer on
+its own when your jobs live elsewhere, like a store fed by your server's events. It's pure: no
+timers, no fetching, no React.
+
+```
+queued ──start──▶ running ──succeed──▶ succeeded
+  │                  │└────fail──────▶ failed ───┐
+  └─────cancel───────┴────cancel─────▶ canceled ─┴─retry─▶ queued (the next attempt)
+```
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/generation-queue-reducer
+```
+
+Or by URL, without setting up the namespace:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/generation-queue-reducer.json
+```
+
+It lands in `lib/generation-queue-reducer.ts` (wherever your `lib` alias points) and has no dependencies.
+
+## Usage
+
+```tsx
+import { useReducer } from "react"
+import { generationQueueReducer, type GenerationJob } from "@/lib/generation-queue-reducer"
+
+const [jobs, dispatch] = useReducer(generationQueueReducer, [] as readonly GenerationJob[])
+
+dispatch({
+  type: "submit",
+  id: "job-1",
+  number: 1,
+  request: { kind: "image", prompt: "A red car on a mountain road", ratio: "16:9" },
+  estimate: 8000,
+})
+dispatch({ type: "start", id: "job-1", attempt: 1, at: Date.now() })
+dispatch({ type: "progress", id: "job-1", attempt: 1, progress: 0.4, at: Date.now() })
+dispatch({ type: "succeed", id: "job-1", attempt: 1, result: { src: "/car.webp", width: 1024, height: 576 } })
+```
+
+### Late events
+
+A run reports in its own time, and the job may have moved on: progress can arrive after a cancel,
+and a first attempt's success after a retry started a second one. So the reports from a run
+(start, progress, succeed, fail) name the attempt they belong to, and every event is checked
+before it applies. An event changes nothing when:
+
+- its job is gone: removed, or never there;
+- it reports on another attempt than the job's current one: a run that's over;
+- the job's state doesn't take it: a success for a canceled job, a cancel for a finished one.
+
+Then the reducer returns the very same array, so React skips the render. The user's commands
+(cancel, retry, remove) name only the job: they're about whatever attempt is current.
+
+### The rules
+
+- New jobs go first. A retried job keeps its place in the list, and in the line.
+- Progress runs from 0 to 1 (numbers outside are clamped, and ones that aren't finite ignored) and
+  never goes backwards. It can be unknown, `null`: a `null` report leaves a known value as it is.
+- A job canceled before it started is refunded (`refunded: true`): nothing was spent. Once it runs,
+  its cost is spent.
+- A succeeded job holds its result and is at progress 1; a failed one holds its error message.
+- A retry starts the next attempt from nothing: no start time, progress, error or refund.
+
+### Your own fields
+
+A request can carry anything else your driver needs, like a model or a duration. Extend
+`GenerationRequest`, and the jobs carry your fields along, typed:
+
+```ts
+import type { GenerationJob, GenerationRequest } from "@/lib/generation-queue-reducer"
+
+interface VideoRequest extends GenerationRequest {
+  model: string
+  duration: number
+}
+
+type VideoJob = GenerationJob<VideoRequest> // job.model, job.duration, job.status...
+```
+
+Don't use the job's own field names (`status`, `progress`, `result`…) for yours.
+
+## API
+
+### generationQueueReducer(jobs, event)
+
+Returns the jobs after the event: the same array when the event changes nothing, and otherwise a
+new array where only the job the event is about is a new object.
+
+| Event      | Fields                                   | Applies to            | Then                                         |
+| ---------- | ---------------------------------------- | --------------------- | -------------------------------------------- |
+| `submit`   | `id`, `number`, `request`, `estimate?`   | a new id              | a queued job, first in the list, at attempt 1 |
+| `start`    | `id`, `attempt`, `at`                    | queued                | running, started `at`                         |
+| `progress` | `id`, `attempt`, `progress`, `at`        | running               | its progress, if it moved forward             |
+| `succeed`  | `id`, `attempt`, `result`                | running               | succeeded, with its result                    |
+| `fail`     | `id`, `attempt`, `error`                 | running               | failed, with its error message                |
+| `cancel`   | `id`                                     | queued or running     | canceled; refunded if it was queued           |
+| `retry`    | `id`                                     | failed or canceled    | queued again, at the next attempt             |
+| `remove`   | `id`                                     | any                   | gone                                          |
+
+Times (`at`) are in milliseconds, like `Date.now()`. `number` is the job's number among its kind,
+the 3 in "Image 3": the hook counts it. `estimate` is how long a run should take, in milliseconds.
+
+### GenerationJob
+
+A job is its request and its state.
+
+<AutoTypeTable path="registry/lib/generation-queue-reducer.ts" name="GenerationRequest" />
+
+<AutoTypeTable path="registry/lib/generation-queue-reducer.ts" name="GenerationJobState" />
+
+<AutoTypeTable path="registry/lib/generation-queue-reducer.ts" name="GenerationResult" />
+
+### queuePosition(jobs, id)
+
+A queued job's place in the line, 1 for the next to start, or `null` for a job that isn't queued.
+The line is the order of submission.
+
+### timeLeft(jobs, id, options)
+
+How long until the job is done, in milliseconds, at `options.now` (like `Date.now()`), with
+`options.concurrency` jobs running at once; `null` when there's nothing to go by, and for finished
+jobs.
+
+- A running job goes by its progress rate: 25% in 2 seconds leaves 6, counted down since that
+  report. While its progress is unknown, it counts down the driver's estimate. Never below 0.
+- A queued job waits for a slot: each running job takes the time it has left, and each job ahead
+  of it in the line takes its estimate, `concurrency` at a time. Then it takes its own. With any of
+  those unknown, so is its time.
+
+## Changelog
+
+- **0.0.5**: First release.

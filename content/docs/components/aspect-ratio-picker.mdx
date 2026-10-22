@@ -1,0 +1,93 @@
+---
+title: AspectRatioPicker
+description: Pick an aspect ratio from frames drawn in their shapes, with a preview frame that changes shape with the pick. Disabled ratios say why.
+---
+
+import { aspectRatioPickerKeyboard } from '@/content/keyboard/aspect-ratio-picker';
+
+<Demo name="aspect-ratio-picker" />
+
+Each ratio is a radio button with a small frame drawn in its shape, and a larger preview frame
+takes the shape of the pick. Ratios that can't be picked, say because the chosen model doesn't
+make them, stay in view, disabled, with the reason.
+
+## Installation
+
+```npm
+npx shadcn@latest add @genframe/aspect-ratio-picker
+```
+
+Or by URL:
+
+```npm
+npx shadcn@latest add https://agzhxx.github.io/genframe/r/aspect-ratio-picker.json
+```
+
+The URL form needs the namespace mapped too ([Add the registry](../index.mdx#add-the-registry)):
+the picker brings two Genframe items with it, [useReducedMotion](../utilities/use-reduced-motion.mdx)
+and the [motion tokens](../utilities/motion-tokens.mdx), and shadcn finds them through
+`@genframe`.
+
+It lands in `components/ui/aspect-ratio-picker/`: the component and its arithmetic
+(`ratio-math.ts`). It needs no npm packages.
+
+## Usage
+
+```tsx
+import { useState } from "react"
+import { AspectRatioPicker } from "@/components/ui/aspect-ratio-picker/aspect-ratio-picker"
+
+export function RatioSetting() {
+  const [ratio, setRatio] = useState("16:9")
+
+  return (
+    <AspectRatioPicker
+      value={ratio}
+      onValueChange={setRatio}
+      disabled={{ "21:9": "This model makes up to 16:9" }}
+    />
+  )
+}
+```
+
+`ratios` sets the choice, in the order given: any `width:height`, decimals included, like
+`"2.39:1"`. Without `value` or `defaultValue`, the first ratio that isn't disabled is picked.
+Inside a form, give it a `name` and the picked ratio is sent with the form.
+
+In a toolbar, `compact` leaves out the preview frame and lays the ratios out in one row.
+
+## Props
+
+<AutoTypeTable path="registry/ui/aspect-ratio-picker/aspect-ratio-picker.tsx" name="AspectRatioPickerProps" />
+
+## Keyboard
+
+<KeyboardTable keyboard={aspectRatioPickerKeyboard} />
+
+These are the browser's own keys: every ratio is a native radio button.
+
+## Accessibility
+
+- Native radio buttons in a `role="radiogroup"` named "Aspect ratio" (or your `aria-label` or
+  `aria-labelledby`), so the browser itself provides the WAI-ARIA
+  [radio group pattern](https://www.w3.org/WAI/ARIA/apg/patterns/radio/), and the value works in
+  forms.
+- Each ratio's name says its shape too: "16:9, landscape", "9:16, portrait".
+- Keyboard focus shows as a ring around the frame.
+- A disabled ratio can't take focus, so its reason is shown in three ways: in a bubble when you
+  hover or tap it; in a note under the picker while it has keyboard focus; and to screen readers as
+  the description of the disabled radio button, and in the group's description, which lists them
+  all.
+- The preview frame is hidden from screen readers: the checked radio button says the same.
+
+## Motion
+
+- The preview frame takes its new shape by a `transform` scale, over `--genframe-duration-base`
+  with `--genframe-ease-out`. Its outline keeps its width as it scales: the stroke is
+  `vector-effect: non-scaling-stroke`.
+- With reduced motion, the frame takes the new shape at once.
+
+## Changelog
+
+- **0.0.4**: `compact`, without the preview frame and with the ratios in one row, for toolbars.
+- **0.0.3**: First release.
